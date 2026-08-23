@@ -11,6 +11,27 @@ import matplotlib.pyplot as plt
 
 
 # =========================================================
+# HIGH-DEFINITION PLOT STYLING
+# =========================================================
+plt.rcParams.update({
+    "figure.dpi": 300,
+    "savefig.dpi": 300,
+    "font.family": "sans-serif",
+    "font.sans-serif": ["Helvetica", "Arial", "DejaVu Sans"],
+    "font.size": 10,
+    "axes.labelsize": 11,
+    "axes.titlesize": 12,
+    "axes.titleweight": "bold",
+    "axes.edgecolor": "#cbd5e1",
+    "axes.linewidth": 1.0,
+    "grid.color": "#f1f5f9",
+    "grid.linestyle": "--",
+    "grid.linewidth": 0.8,
+    "figure.constrained_layout.use": True,
+})
+
+
+# =========================================================
 # PAGE CONFIG
 # =========================================================
 
@@ -447,12 +468,16 @@ if st.session_state.active_tab == "Try the Classifier":
     }).sort_values("Probability", ascending=True)
 
     fig, ax = plt.subplots(figsize=(8, 3.2))
-    ax.barh(prob_df["Class"], prob_df["Probability"], color="#1e40af")
-    ax.set_xlim(0, 1)
-    ax.set_xlabel("Model probability")
-    ax.grid(axis="x", alpha=0.2)
+    ax.barh(prob_df["Class"], prob_df["Probability"], color="#2563eb", height=0.55, edgecolor="none", zorder=3)
+    ax.set_xlim(0, 1.05)
+    ax.set_xlabel("Model Probability", labelpad=8)
+    ax.grid(axis="x", alpha=0.5, zorder=0)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.spines["bottom"].set_color("#cbd5e1")
+    ax.spines["left"].set_color("#cbd5e1")
     for i, v in enumerate(prob_df["Probability"]):
-        ax.text(min(v + 0.02, 0.94), i, f"{v:.0%}", va="center")
+        ax.text(min(v + 0.03, 0.95), i, f"{v:.0%}", va="center", fontweight="600", color="#334155", fontsize=9.5)
     fig.tight_layout()
     st.pyplot(fig, use_container_width=True)
     plt.close(fig)
@@ -480,7 +505,7 @@ if st.session_state.active_tab == "Try the Classifier":
                 unsafe_allow_html=True,
             )
 
-# SHAP EXPLANATION
+    # SHAP EXPLANATION
     st.markdown("#### Model Explanation (SHAP)")
     st.caption("This shows how each spectral feature contributed to the current prediction.")
 
@@ -490,7 +515,6 @@ if st.session_state.active_tab == "Try the Classifier":
         explainer = shap.TreeExplainer(model)
         shap_values = explainer.shap_values(input_features)
 
-        # Handle different SHAP output formats (list for multi-class vs array)
         if isinstance(shap_values, list):
             pred_idx = list(model.classes_).index(prediction)
             shap_val = np.array(shap_values[pred_idx]).flatten()
@@ -507,11 +531,15 @@ if st.session_state.active_tab == "Try the Classifier":
         }).sort_values("SHAP Value", key=abs, ascending=False)
 
         fig_shap, ax_shap = plt.subplots(figsize=(8, 3.5))
-        colors = ["#10b981" if x > 0 else "#ef4444" for x in shap_df["SHAP Value"]]
-        ax_shap.barh(shap_df["Feature"], shap_df["SHAP Value"], color=colors)
-        ax_shap.set_xlabel("SHAP Value (Impact on Prediction)")
-        ax_shap.axvline(0, color="gray", linewidth=0.8)
-        ax_shap.grid(axis="x", alpha=0.3)
+        colors = ["#059669" if x > 0 else "#dc2626" for x in shap_df["SHAP Value"]]
+        ax_shap.barh(shap_df["Feature"], shap_df["SHAP Value"], color=colors, height=0.55, zorder=3)
+        ax_shap.set_xlabel("SHAP Value (Impact on Prediction)", labelpad=8)
+        ax_shap.axvline(0, color="#94a3b8", linewidth=1.2, linestyle="-", zorder=2)
+        ax_shap.grid(axis="x", alpha=0.5, zorder=0)
+        ax_shap.spines["top"].set_visible(False)
+        ax_shap.spines["right"].set_visible(False)
+        ax_shap.spines["bottom"].set_color("#cbd5e1")
+        ax_shap.spines["left"].set_color("#cbd5e1")
         fig_shap.tight_layout()
         st.pyplot(fig_shap, use_container_width=True)
         plt.close(fig_shap)
@@ -542,20 +570,29 @@ if st.session_state.active_tab == "Try the Classifier":
     sigma = fwhm / 2.355
     simulated_spectrum = peak_height * np.exp(-((wavelengths - lambda_max) ** 2) / (2 * sigma**2))
 
-    fig2, ax2 = plt.subplots(figsize=(12, 4.5))
-    ax2.plot(wavelengths, simulated_spectrum, linewidth=2.5, color="#1e40af")
-    ax2.axvline(lambda_max, linestyle="--", linewidth=1, alpha=0.6, color="#f59e0b")
-    ax2.scatter([lambda_max], [peak_height], s=55, zorder=5, color="#ef4444")
+    fig2, ax2 = plt.subplots(figsize=(12, 4.2))
+    ax2.plot(wavelengths, simulated_spectrum, linewidth=2.8, color="#1d4ed8", zorder=3)
+    ax2.fill_between(wavelengths, simulated_spectrum, color="#eff6ff", alpha=0.6, zorder=2)
+    ax2.axvline(lambda_max, linestyle="--", linewidth=1.2, color="#d97706", alpha=0.8, zorder=3)
+    ax2.scatter([lambda_max], [peak_height], s=65, zorder=4, color="#dc2626", edgecolor="white", linewidth=1.5)
     ax2.annotate(
         f"λmax = {lambda_max:.1f} nm",
         xy=(lambda_max, peak_height),
-        xytext=(lambda_max + 10, peak_height * 0.85),
-        arrowprops=dict(arrowstyle="->", alpha=0.5),
+        xytext=(lambda_max + 12, peak_height * 0.82),
+        arrowprops=dict(arrowstyle="->", color="#64748b", lw=1.2, alpha=0.7),
+        fontsize=9.5,
+        fontweight="600",
+        color="#334155"
     )
-    ax2.set_xlabel("Wavelength (nm)")
-    ax2.set_ylabel("Absorbance (A.U.)")
+    ax2.set_xlabel("Wavelength (nm)", labelpad=8)
+    ax2.set_ylabel("Absorbance (A.U.)", labelpad=8)
     ax2.set_xlim(200, 400)
-    ax2.grid(alpha=0.18)
+    ax2.set_ylim(bottom=0)
+    ax2.grid(alpha=0.4, zorder=0)
+    ax2.spines["top"].set_visible(False)
+    ax2.spines["right"].set_visible(False)
+    ax2.spines["bottom"].set_color("#cbd5e1")
+    ax2.spines["left"].set_color("#cbd5e1")
     fig2.tight_layout()
     st.pyplot(fig2, use_container_width=True)
     plt.close(fig2)
