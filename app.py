@@ -28,7 +28,7 @@ st.set_page_config(
 
 st.markdown(
     """
- <style>
+    <style>
 
 /* ---------- GLOBAL ---------- */
 .stApp {
@@ -479,58 +479,52 @@ if st.session_state.active_tab == "Try the Classifier":
                 """,
                 unsafe_allow_html=True,
             )
-# =====================================================
-# SHAP EXPLANATION
-# =====================================================
-st.markdown("#### Model Explanation (SHAP)")
-st.caption("This shows how each spectral feature contributed to the current prediction.")
 
-try:
-    import shap
+    # SHAP EXPLANATION
+    st.markdown("#### Model Explanation (SHAP)")
+    st.caption("This shows how each spectral feature contributed to the current prediction.")
 
-    # Create SHAP explainer
-    explainer = shap.TreeExplainer(model)
-    shap_values = explainer.shap_values(input_features)
+    try:
+        import shap
 
-    # For multi-class, we take the SHAP values of the predicted class
-    if isinstance(shap_values, list):
-        # Find index of predicted class
-        pred_idx = list(model.classes_).index(prediction)
-        shap_val = shap_values[pred_idx][0]
-    else:
-        shap_val = shap_values[0]
+        explainer = shap.TreeExplainer(model)
+        shap_values = explainer.shap_values(input_features)
 
-    # Create a nice dataframe for display
-    shap_df = pd.DataFrame({
-        "Feature": input_features.columns,
-        "SHAP Value": shap_val,
-        "Feature Value": input_features.iloc[0].values
-    }).sort_values("SHAP Value", key=abs, ascending=False)
+        if isinstance(shap_values, list):
+            pred_idx = list(model.classes_).index(prediction)
+            shap_val = shap_values[pred_idx][0]
+        else:
+            shap_val = shap_values[0]
 
-    # Bar chart of SHAP values
-    fig_shap, ax_shap = plt.subplots(figsize=(8, 3.5))
-    colors = ["#10b981" if x > 0 else "#ef4444" for x in shap_df["SHAP Value"]]
-    ax_shap.barh(shap_df["Feature"], shap_df["SHAP Value"], color=colors)
-    ax_shap.set_xlabel("SHAP Value (Impact on Prediction)")
-    ax_shap.axvline(0, color="gray", linewidth=0.8)
-    ax_shap.grid(axis="x", alpha=0.3)
-    fig_shap.tight_layout()
-    st.pyplot(fig_shap, use_container_width=True)
-    plt.close(fig_shap)
+        shap_df = pd.DataFrame({
+            "Feature": input_features.columns,
+            "SHAP Value": shap_val,
+            "Feature Value": input_features.iloc[0].values
+        }).sort_values("SHAP Value", key=abs, ascending=False)
 
-    st.dataframe(
-        shap_df.style.format({
-            "SHAP Value": "{:.4f}",
-            "Feature Value": "{:.2f}"
-        }),
-        use_container_width=True,
-        hide_index=True
-    )
+        fig_shap, ax_shap = plt.subplots(figsize=(8, 3.5))
+        colors = ["#10b981" if x > 0 else "#ef4444" for x in shap_df["SHAP Value"]]
+        ax_shap.barh(shap_df["Feature"], shap_df["SHAP Value"], color=colors)
+        ax_shap.set_xlabel("SHAP Value (Impact on Prediction)")
+        ax_shap.axvline(0, color="gray", linewidth=0.8)
+        ax_shap.grid(axis="x", alpha=0.3)
+        fig_shap.tight_layout()
+        st.pyplot(fig_shap, use_container_width=True)
+        plt.close(fig_shap)
 
-    st.info("Positive SHAP values push the prediction toward the predicted class. Negative values push it away.")
+        st.dataframe(
+            shap_df.style.format({
+                "SHAP Value": "{:.4f}",
+                "Feature Value": "{:.2f}"
+            }),
+            use_container_width=True,
+            hide_index=True
+        )
 
-except Exception as e:
-    st.warning(f"SHAP explanation could not be generated: {e}")
+        st.info("Positive SHAP values push the prediction toward the predicted class. Negative values push it away.")
+
+    except Exception as e:
+        st.warning(f"SHAP explanation could not be generated: {e}")
 
     # Spectrum
     st.markdown("<hr>", unsafe_allow_html=True)
@@ -678,7 +672,7 @@ elif st.session_state.active_tab == "About the Project":
 
     st.markdown("<hr>", unsafe_allow_html=True)
     st.markdown("### ⚛️ DFT Validation")
-    st.success("**TD-DFT prediction:** λmax = 248.72 nm  |  Oscillator strength = 0.5021  |  Experimental/reference ≈ 243 nm  |  Difference = 5.72 nm")
+    st.success("**TD-DFT prediction:** λmax = 248.72 nm &nbsp;| &nbsp;Oscillator strength = 0.5021 &nbsp;| &nbsp;Experimental/reference ≈ 243 nm &nbsp;| &nbsp;Difference = 5.72 nm")
     st.write("The dominant electronic transition among the ten calculated excited states was predicted at 248.72 nm with an oscillator strength of 0.5021.")
 
     with st.expander("View all 10 calculated excited states"):
