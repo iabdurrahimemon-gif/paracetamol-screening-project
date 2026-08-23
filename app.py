@@ -386,11 +386,11 @@ elif st.session_state.active_tab == "Upload & Analyze":
                 if len(df_clean) > 0:
                     features_input = df_clean[required_cols]
                     predictions = model.predict(features_input)
-    probabilities = model.predict_proba(features_input)
-    max_probs = np.max(probabilities, axis=1)
+                    probabilities = model.predict_proba(features_input)
+                    max_probs = np.max(probabilities, axis=1)
 
-    df_results = df_clean.copy()
-    df_results["Predicted_Class"] = predictions
+                    df_results = df_clean.copy()
+                    df_results["Predicted_Class"] = predictions
     df_results["Confidence"] = max_probs
 
     st.markdown("### 📊 Batch Screening Results")
