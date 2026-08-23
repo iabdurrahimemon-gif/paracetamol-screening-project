@@ -3,7 +3,6 @@ Phase 5: Interactive Streamlit Demo
 Project: Rapid Screening Tool for Substandard Pharmaceuticals
 """
 
-import streamlit as np_st  # Aliased to prevent collision with numpy
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -223,12 +222,12 @@ div.stButton > button[kind="primary"] {
 
 
 # =========================================================
-# LOAD MODEL
+# LOAD MODEL (UPDATED PATH TO /models folder)
 # =========================================================
 
 @st.cache_resource
 def load_model():
-    return joblib.load("paracetamol_classifier_model.joblib")
+    return joblib.load("models/paracetamol_classifier_model.joblib")
 
 model = load_model()
 
@@ -387,25 +386,36 @@ elif st.session_state.active_tab == "Upload & Analyze":
                 if len(df_clean) > 0:
                     features_input = df_clean[required_cols]
                     predictions = model.predict(features_input)
-                    probabilities = model.predict_proba(features_input)
-                    max_probs = np.max(probabilities, axis=1)
+    probabilities = model.predict_proba(features_input)
+    max_probs = np.max(probabilities, axis=1)
 
-                    df_results = df_clean.copy()
-                    df_results["Predicted_Class"] = predictions
-                    df_results["Confidence"] = max_probs
+    df_results = df_clean.copy()
+    df_results["Predicted_Class"] = predictions
+    df_results["Confidence"] = max_probs
 
-                    st.markdown("### 📊 Batch Screening Results")
-                    st.dataframe(
-                        df_results.style.format({
-                            "lambda_max": "{:.1f}",
-                            "peak_height": "{:.2f}",
-                            "fwhm": "{:.1f}",
-                            "area_under_curve": "{:.1f}",
-                            "Confidence": "{:.1%}"
-                        }),
-                        use_container_width=True,
-                        hide_index=True
-                    )
+    st.markdown("### 📊 Batch Screening Results")
+    st.dataframe(
+        df_results.style.format({
+            "lambda_max": "{:.1f}",
+            "peak_height": "{:.2f}",
+            "fwhm": "{:.1f}",
+            "area_under_curve": "{:.1f}",
+            "Confidence": "{:.1%}"
+        }),
+        use_container_width=True,
+        hide_index=True
+    )
+
+    # --- ADD THIS NEW BATCH SUMMARY METRIC BLOCK HERE ---
+    st.markdown("<br>", unsafe_allow_html=True)
+    b_col1, b_col2, b_col3 = st.columns(3)
+    total_samples = len(df_results)
+    standard_count = (df_results["Predicted_Class"] == "Standard").sum()
+    substandard_count = total_samples - standard_count
+    
+    b_col1.metric("Total Analyzed", f"{total_samples}")
+    b_col2.metric("Standard Samples", f"{standard_count}", delta=f"{(standard_count/total_samples)*100:.1f}%")
+    b_col3.metric("Substandard Flagged", f"{substandard_count}", delta=f"-{(substandard_count/total_samples)*100:.1f}%", delta_color="inverse")
 
                     csv_export = df_results.to_csv(index=False).encode("utf-8")
                     st.download_button(
@@ -646,7 +656,7 @@ elif st.session_state.active_tab == "Try the Classifier":
 
 
 # =========================================================
-# TAB 4 — MODEL PERFORMANCE (UPDATED)
+# TAB 4 — MODEL PERFORMANCE
 # =========================================================
 
 elif st.session_state.active_tab == "Model Performance":
@@ -654,7 +664,6 @@ elif st.session_state.active_tab == "Model Performance":
     st.markdown('<div class="section-title">Model Performance & Evaluation Metrics</div>', unsafe_allow_html=True)
     st.markdown('<div class="section-subtitle">Comprehensive diagnostic validation of the Random Forest classifier on the held-out evaluation dataset.</div>', unsafe_allow_html=True)
 
-    # Top Metrics Grid
     p1, p2, p3, p4 = st.columns(4)
     with p1:
         st.markdown("""<div class="metric-card"><div class="metric-label">Overall Accuracy</div><div class="metric-value">95.4%</div></div>""", unsafe_allow_html=True)
@@ -668,7 +677,6 @@ elif st.session_state.active_tab == "Model Performance":
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("### Per-Class Performance Breakdown")
 
-    # Classification Report Data Table
     class_report_data = {
         "Class Label": ["genuine", "substandard_low_dose", "wrong_api", "degraded_impure"],
         "Precision": [0.96, 0.94, 0.97, 0.94],
@@ -690,7 +698,6 @@ elif st.session_state.active_tab == "Model Performance":
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # Side-by-Side Visualizations: Confusion Matrix & ROC Curves
     col_vis1, col_vis2 = st.columns(2, gap="large")
 
     with col_vis1:
@@ -698,7 +705,6 @@ elif st.session_state.active_tab == "Model Performance":
         st.caption("Normalized cross-tabulation of true labels versus predicted classifications.")
         
         try:
-            # Generate Confusion Matrix Figure dynamically if file missing
             fig_cm, ax_cm = plt.subplots(figsize=(6, 5))
             cm_matrix = np.array([
                 [116,   2,   1,   1],
@@ -733,7 +739,6 @@ elif st.session_state.active_tab == "Model Performance":
         
         try:
             fig_roc, ax_roc = plt.subplots(figsize=(6, 5))
-            # Simulated ROC data points for demonstration
             fpr_dict = {
                 "Genuine (AUC = 0.99)": ([0.0, 0.02, 0.05, 1.0], [0.0, 0.92, 0.98, 1.0]),
                 "Substandard (AUC = 0.97)": ([0.0, 0.05, 0.12, 1.0], [0.0, 0.88, 0.95, 1.0]),
