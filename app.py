@@ -482,7 +482,6 @@ if st.session_state.active_tab == "Try the Classifier":
 # =====================================================
 # SHAP EXPLANATION
 # =====================================================
-
 st.markdown("#### Model Explanation (SHAP)")
 st.caption("This shows how each spectral feature contributed to the current prediction.")
 
@@ -532,7 +531,7 @@ try:
 
 except Exception as e:
     st.warning(f"SHAP explanation could not be generated: {e}")
-    
+
     # Spectrum
     st.markdown("<hr>", unsafe_allow_html=True)
     st.markdown('<div class="section-title">Reconstructed UV-Vis Spectrum</div>', unsafe_allow_html=True)
