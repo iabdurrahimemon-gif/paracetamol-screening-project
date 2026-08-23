@@ -284,13 +284,13 @@ st.markdown(
 
 
 # =========================================================
-# NAVIGATION TABS (HOME ADDED)
+# NAVIGATION TABS (UPLOAD & ANALYZE ADDED)
 # =========================================================
 
 if "active_tab" not in st.session_state:
     st.session_state.active_tab = "Home"
 
-col1, col2, col3, col4 = st.columns(4)
+col1, col2, col3, col4, col5 = st.columns(5)
 
 with col1:
     if st.button(
@@ -303,6 +303,15 @@ with col1:
 
 with col2:
     if st.button(
+        "Upload & Analyze",
+        use_container_width=True,
+        type="primary" if st.session_state.active_tab == "Upload & Analyze" else "secondary",
+    ):
+        st.session_state.active_tab = "Upload & Analyze"
+        st.rerun()
+
+with col3:
+    if st.button(
         "Try the Classifier",
         use_container_width=True,
         type="primary" if st.session_state.active_tab == "Try the Classifier" else "secondary",
@@ -310,7 +319,7 @@ with col2:
         st.session_state.active_tab = "Try the Classifier"
         st.rerun()
 
-with col3:
+with col4:
     if st.button(
         "Model Performance",
         use_container_width=True,
@@ -319,7 +328,7 @@ with col3:
         st.session_state.active_tab = "Model Performance"
         st.rerun()
 
-with col4:
+with col5:
     if st.button(
         "About the Project",
         use_container_width=True,
@@ -392,7 +401,111 @@ if st.session_state.active_tab == "Home":
 
 
 # =========================================================
-# TAB 1 — CLASSIFIER
+# TAB 1 — UPLOAD & ANALYZE
+# =========================================================
+
+elif st.session_state.active_tab == "Upload & Analyze":
+
+    st.markdown('<div class="section-title">Batch Upload & Spectral Analysis</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="section-subtitle">Upload a CSV file containing UV-Vis spectral readings to execute automated validation, preprocessing, and classification.</div>',
+        unsafe_allow_html=True,
+    )
+
+    uploaded_file = st.file_uploader(
+        "Upload UV-Vis CSV Dataset",
+        type=["csv"],
+        help="Upload a CSV with columns: lambda_max, peak_height, fwhm, area_under_curve"
+    )
+
+    if uploaded_file is not None:
+        try:
+            # 1. Upload & Load
+            df_raw = pd.read_csv(uploaded_file)
+            st.success("✅ File successfully uploaded.")
+            
+            with st.expander("🔍 Preview Raw Uploaded Data"):
+                st.dataframe(df_raw.head(), use_container_width=True)
+
+            # 2. Validate
+            required_cols = ["lambda_max", "peak_height", "fwhm", "area_under_curve"]
+            missing_cols = [col for col in required_cols if col not in df_raw.columns]
+
+            if missing_cols:
+                st.error(f"❌ Validation Error: Missing required columns: `{missing_cols}`. Expected columns: `{required_cols}`")
+            else:
+                st.info("✔ Validation Passed: All mandatory spectral features are present.")
+
+                # 3. Preprocess
+                df_clean = df_raw.dropna(subset=required_cols).copy()
+                for col in required_cols:
+                    df_clean[col] = pd.to_numeric(df_clean[col], errors="coerce")
+                df_clean = df_clean.dropna(subset=required_cols)
+
+                st.info(f"✔ Preprocessing Complete: Cleaned dataset contains {len(df_clean)} valid sample rows.")
+
+                # 4. Predict
+                if len(df_clean) > 0:
+                    features_input = df_clean[required_cols]
+                    predictions = model.predict(features_input)
+                    probabilities = model.predict_proba(features_input)
+                    max_probs = np.max(probabilities, axis=1)
+
+                    df_results = df_clean.copy()
+                    df_results["Predicted_Class"] = predictions
+                    df_results["Confidence"] = max_probs
+
+                    st.markdown("### 📊 Batch Screening Results")
+                    st.dataframe(
+                        df_results.style.format({
+                            "lambda_max": "{:.1f}",
+                            "peak_height": "{:.2f}",
+                            "fwhm": "{:.1f}",
+                            "area_under_curve": "{:.1f}",
+                            "Confidence": "{:.1%}"
+                        }),
+                        use_container_width=True,
+                        hide_index=True
+                    )
+
+                    # Summary chart of predictions
+                    st.markdown("#### Class Distribution Summary")
+                    class_counts = pd.Series(predictions).value_counts()
+                    
+                    fig_batch, ax_batch = plt.subplots(figsize=(7, 2.8))
+                    class_counts.plot(kind="bar", ax=ax_batch, color="#2563eb", edgecolor="#1e40af", linewidth=0.6, zorder=3)
+                    ax_batch.set_ylabel("Sample Count", labelpad=6)
+                    ax_batch.set_xlabel("Classification Category", labelpad=6)
+                    plt.xticks(rotation=0)
+                    ax_batch.grid(axis="y", alpha=0.6, zorder=0)
+                    ax_batch.spines["top"].set_visible(True)
+                    ax_batch.spines["right"].set_visible(True)
+                    ax_batch.spines["top"].set_color("#94a3b8")
+                    ax_batch.spines["right"].set_color("#94a3b8")
+                    
+                    fig_batch.tight_layout()
+                    st.pyplot(fig_batch, use_container_width=True)
+                    plt.close(fig_batch)
+
+                    # Download button for processed results
+                    csv_export = df_results.to_csv(index=False).encode("utf-8")
+                    st.download_button(
+                        label="📥 Download Classification Report (CSV)",
+                        data=csv_export,
+                        file_name="paracetamol_screening_report.csv",
+                        mime="text/csv",
+                    )
+                else:
+                    st.warning("⚠️ No valid numeric rows remaining after preprocessing.")
+
+        except Exception as e:
+            st.error(f"An error occurred while processing the file: {e}")
+    else:
+        st.info("💡 Tip: Ensure your CSV file has header names: `lambda_max`, `peak_height`, `fwhm`, and `area_under_curve`.")
+
+
+# =========================================================
+# TAB 2 — TRY THE CLASSIFIER
 # =========================================================
 
 elif st.session_state.active_tab == "Try the Classifier":
@@ -450,7 +563,6 @@ elif st.session_state.active_tab == "Try the Classifier":
 
     st.markdown("---")
 
-    # Prediction
     input_features = pd.DataFrame([{
         "lambda_max": lambda_max,
         "peak_height": peak_height,
@@ -654,7 +766,7 @@ elif st.session_state.active_tab == "Try the Classifier":
 
 
 # =========================================================
-# TAB 2 — MODEL PERFORMANCE
+# TAB 3 — MODEL PERFORMANCE
 # =========================================================
 
 elif st.session_state.active_tab == "Model Performance":
@@ -694,7 +806,7 @@ elif st.session_state.active_tab == "Model Performance":
 
 
 # =========================================================
-# TAB 3 — ABOUT
+# TAB 4 — ABOUT
 # =========================================================
 
 elif st.session_state.active_tab == "About the Project":
