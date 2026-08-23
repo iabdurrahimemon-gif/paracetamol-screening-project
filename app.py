@@ -391,31 +391,30 @@ elif st.session_state.active_tab == "Upload & Analyze":
 
                     df_results = df_clean.copy()
                     df_results["Predicted_Class"] = predictions
-    df_results["Confidence"] = max_probs
+                    df_results["Confidence"] = max_probs
 
-    st.markdown("### 📊 Batch Screening Results")
-    st.dataframe(
-        df_results.style.format({
-            "lambda_max": "{:.1f}",
-            "peak_height": "{:.2f}",
-            "fwhm": "{:.1f}",
-            "area_under_curve": "{:.1f}",
-            "Confidence": "{:.1%}"
-        }),
-        use_container_width=True,
-        hide_index=True
-    )
+                    st.markdown("### 📊 Batch Screening Results")
+                    st.dataframe(
+                        df_results.style.format({
+                            "lambda_max": "{:.1f}",
+                            "peak_height": "{:.2f}",
+                            "fwhm": "{:.1f}",
+                            "area_under_curve": "{:.1f}",
+                            "Confidence": "{:.1%}"
+                        }),
+                        use_container_width=True,
+                        hide_index=True
+                    )
 
-    # --- ADD THIS NEW BATCH SUMMARY METRIC BLOCK HERE ---
-    st.markdown("<br>", unsafe_allow_html=True)
-    b_col1, b_col2, b_col3 = st.columns(3)
-    total_samples = len(df_results)
-    standard_count = (df_results["Predicted_Class"] == "Standard").sum()
-    substandard_count = total_samples - standard_count
-    
-    b_col1.metric("Total Analyzed", f"{total_samples}")
-    b_col2.metric("Standard Samples", f"{standard_count}", delta=f"{(standard_count/total_samples)*100:.1f}%")
-    b_col3.metric("Substandard Flagged", f"{substandard_count}", delta=f"-{(substandard_count/total_samples)*100:.1f}%", delta_color="inverse")
+                    st.markdown("<br>", unsafe_allow_html=True)
+                    b_col1, b_col2, b_col3 = st.columns(3)
+                    total_samples = len(df_results)
+                    standard_count = (df_results["Predicted_Class"] == "Standard").sum()
+                    substandard_count = total_samples - standard_count
+                    
+                    b_col1.metric("Total Analyzed", f"{total_samples}")
+                    b_col2.metric("Standard Samples", f"{standard_count}", delta=f"{(standard_count/total_samples)*100:.1f}%")
+                    b_col3.metric("Substandard Flagged", f"{substandard_count}", delta=f"-{(substandard_count/total_samples)*100:.1f}%", delta_color="inverse")
 
                     csv_export = df_results.to_csv(index=False).encode("utf-8")
                     st.download_button(
