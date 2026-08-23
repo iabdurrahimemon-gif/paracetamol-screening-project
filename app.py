@@ -284,15 +284,24 @@ st.markdown(
 
 
 # =========================================================
-# CUSTOM BUTTON TABS
+# NAVIGATION TABS (HOME ADDED)
 # =========================================================
 
 if "active_tab" not in st.session_state:
-    st.session_state.active_tab = "Try the Classifier"
+    st.session_state.active_tab = "Home"
 
-col1, col2, col3 = st.columns(3)
+col1, col2, col3, col4 = st.columns(4)
 
 with col1:
+    if st.button(
+        "Home",
+        use_container_width=True,
+        type="primary" if st.session_state.active_tab == "Home" else "secondary",
+    ):
+        st.session_state.active_tab = "Home"
+        st.rerun()
+
+with col2:
     if st.button(
         "Try the Classifier",
         use_container_width=True,
@@ -301,7 +310,7 @@ with col1:
         st.session_state.active_tab = "Try the Classifier"
         st.rerun()
 
-with col2:
+with col3:
     if st.button(
         "Model Performance",
         use_container_width=True,
@@ -310,7 +319,7 @@ with col2:
         st.session_state.active_tab = "Model Performance"
         st.rerun()
 
-with col3:
+with col4:
     if st.button(
         "About the Project",
         use_container_width=True,
@@ -323,10 +332,70 @@ st.markdown("<br>", unsafe_allow_html=True)
 
 
 # =========================================================
+# TAB 0 — HOME
+# =========================================================
+
+if st.session_state.active_tab == "Home":
+
+    st.markdown('<div class="section-title">Rapid Screening Tool for Substandard Paracetamol</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="section-subtitle">Overview of the framework, operational goals, and design guidelines.</div>',
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        """
+        <div class="info-card" style="margin-bottom: 1.2rem;">
+            <h4>🚨 The Problem</h4>
+            <p>Substandard, degraded, or falsified medications pose severe public health risks. Full confirmatory analytical testing workflows—such as High-Performance Liquid Chromatography (HPLC) or Mass Spectrometry—provide high precision, but they are costly, resource-intensive, and impractical for immediate preliminary triage in resource-constrained environments.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        """
+        <div class="info-card" style="margin-bottom: 1.2rem;">
+            <h4>💡 Proposed Solution</h4>
+            <p>This project introduces a rapid computational screening model that analyzes key UV-Vis absorption profile signatures. By evaluating peak shapes and wavelength positions instantly, it acts as a fast preliminary filtering layer to flag potentially problematic batches before they undergo full-scale laboratory confirmation.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        """
+        <div class="info-card" style="margin-bottom: 1.2rem;">
+            <h4>⚙️ Technology</h4>
+            <p>The system fuses analytical chemistry descriptors with machine learning algorithms (Random Forest classifiers). It takes core spectral features—such as maximum absorption wavelength ($\lambda_{max}$), peak height, full width at half maximum (FWHM), and area under the curve—and maps them against distinct quality classes (genuine, substandard/low-dose, incorrect API, or degraded samples).</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        """
+        <div class="info-card" style="margin-bottom: 1.2rem;">
+            <h4>🎯 Intended Use</h4>
+            <p>Designed for educational exploration, rapid academic assessment, and preliminary screening simulations to demonstrate how optical data can be paired with machine learning to enhance pharmaceutical quality assurance workflows.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    st.warning(
+        """
+        **⚠️ Important Disclaimer:** 
+        This application is an **educational and research prototype**. It is **not** a regulatory-grade diagnostic system or a certified quality-control instrument. Results generated here must not be used for clinical decisions or legal drug enforcement without secondary verification via standard chromatographic procedures (e.g., HPLC).
+        """
+    )
+
+
+# =========================================================
 # TAB 1 — CLASSIFIER
 # =========================================================
 
-if st.session_state.active_tab == "Try the Classifier":
+elif st.session_state.active_tab == "Try the Classifier":
 
     st.markdown(
         '<div class="section-title">Interactive Spectral Screening</div>',
@@ -432,7 +501,6 @@ if st.session_state.active_tab == "Try the Classifier":
         unsafe_allow_html=True,
     )
 
-    # Model Confidence card only (Predicted class box removed as requested)
     st.markdown(
         f"""
         <div class="standout-confidence">
@@ -451,7 +519,6 @@ if st.session_state.active_tab == "Try the Classifier":
         "Probability": probabilities,
     }).sort_values("Probability", ascending=True)
 
-    # Compact graph with gridlines and proper borders
     fig, ax = plt.subplots(figsize=(7, 2.8))
     ax.barh(prob_df["Class"], prob_df["Probability"], color="#2563eb", height=0.5, edgecolor="#1e40af", linewidth=0.6, zorder=3)
     ax.set_xlim(0, 1.05)
@@ -469,7 +536,6 @@ if st.session_state.active_tab == "Try the Classifier":
     st.pyplot(fig, use_container_width=True)
     plt.close(fig)
 
-    # Feature Summary
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown('<div class="section-title">Sample Feature Summary</div>', unsafe_allow_html=True)
 
@@ -492,7 +558,6 @@ if st.session_state.active_tab == "Try the Classifier":
                 unsafe_allow_html=True,
             )
 
-    # SHAP EXPLANATION
     st.markdown("#### Model Explanation (SHAP)")
     st.caption("Detailed breakdown of feature-level impacts on the prediction.")
 
@@ -517,7 +582,6 @@ if st.session_state.active_tab == "Try the Classifier":
             "Feature Value": [float(v) for v in input_features.iloc[0].values]
         }).sort_values("SHAP Value", key=abs, ascending=False)
 
-        # Compact SHAP chart with gridlines and frame
         fig_shap, ax_shap = plt.subplots(figsize=(7, 2.8))
         colors = ["#059669" if x > 0 else "#dc2626" for x in shap_df["SHAP Value"]]
         ax_shap.barh(shap_df["Feature"], shap_df["SHAP Value"], color=colors, height=0.5, edgecolor="#64748b", linewidth=0.6, zorder=3)
@@ -547,7 +611,6 @@ if st.session_state.active_tab == "Try the Classifier":
     except Exception as e:
         st.warning(f"SHAP explanation could not be generated: {e}")
 
-    # Spectrum Graph
     st.markdown("<hr>", unsafe_allow_html=True)
     st.markdown('<div class="section-title">Reconstructed UV-Vis Spectrum</div>', unsafe_allow_html=True)
     st.markdown(
@@ -559,7 +622,6 @@ if st.session_state.active_tab == "Try the Classifier":
     sigma = fwhm / 2.355
     simulated_spectrum = peak_height * np.exp(-((wavelengths - lambda_max) ** 2) / (2 * sigma**2))
 
-    # Compact Spectrum graph with gridlines and proper framing
     fig2, ax2 = plt.subplots(figsize=(9, 3.2))
     ax2.plot(wavelengths, simulated_spectrum, linewidth=2.4, color="#1d4ed8", zorder=3)
     ax2.fill_between(wavelengths, simulated_spectrum, color="#eff6ff", alpha=0.6, zorder=2)
