@@ -1,0 +1,8 @@
+%chk=paracetamol_opt_freq.chk
+%mem=4GB
+%nprocshared=4
+# td(nstates=10) b3lyp/6-311+g(d,p) geom=check scrf=(pcm,solvent=water)
+
+Paracetamol TD-DFT UV-Vis prediction
+
+0 1

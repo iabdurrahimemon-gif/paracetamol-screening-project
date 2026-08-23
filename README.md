@@ -56,7 +56,7 @@ tool.\*\* See Limitations below.
 
 | 3 | ML classifier (genuine vs. substandard/wrong API/degraded) | ⬜ Planned |
 
-| 4 | DFT validation of reference spectrum (Gaussian) | ⬜ Planned |
+| 4 | DFT validation of reference spectrum (Gaussian) | ✅ Complete |
 
 | 5 | Interactive Streamlit demo | ⬜ Planned |
 
@@ -120,15 +120,45 @@ extended to PLS-DA) will be trained to flag genuine vs. suspect samples.
 
 
 
-\### 4. DFT Validation \*(Phase 4, planned)\*
+\### 4. DFT Validation
 
 
 
-The genuine reference spectrum will be cross-checked against a TD-DFT
+The genuine reference spectrum's λmax was independently cross-checked
 
-prediction (Gaussian) of the paracetamol molecule's theoretical UV-Vis
+against a TD-DFT prediction using Gaussian 09 (B3LYP/6-31G(d,p), PCM
 
-absorption, as a computational sanity check on the reference data.
+water solvent model, 10 excited states).
+
+
+
+\*\*Result:\*\* the dominant electronic transition (by oscillator strength)
+
+was predicted at \*\*λmax = 248.72 nm (f = 0.5021)\*\*, compared to the
+
+experimental/reference value of \*\*\~243 nm\*\* — a difference of \*\*5.72 nm\*\*.
+
+
+
+This level of agreement is consistent with the well-documented systematic
+
+overestimation of vertical excitation energies by B3LYP for π→π\*
+
+transitions, and supports the validity of the reference spectrum used
+
+to generate the synthetic dataset in Phase 1.
+
+
+
+\*Note: an initial attempt used the larger 6-311+G(d,p) basis set, but
+
+this repeatedly crashed the available 32-bit Gaussian 09 installation
+
+(IA32W build) due to memory addressing limits. Switching to 6-31G(d,p) —
+
+still a solid double-zeta polarized basis set — resolved this while
+
+still giving chemically meaningful results.\*
 
 
 
@@ -205,4 +235,6 @@ Git/GitHub — all free tools.
 \*Author: Abdur Rahim Emon — M.S. Inorganic Chemistry, University of
 
 Chittagong\*
+
+
 
