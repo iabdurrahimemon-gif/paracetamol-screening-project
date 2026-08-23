@@ -480,7 +480,7 @@ if st.session_state.active_tab == "Try the Classifier":
                 unsafe_allow_html=True,
             )
 
-    # SHAP EXPLANATION
+# SHAP EXPLANATION
     st.markdown("#### Model Explanation (SHAP)")
     st.caption("This shows how each spectral feature contributed to the current prediction.")
 
@@ -490,16 +490,20 @@ if st.session_state.active_tab == "Try the Classifier":
         explainer = shap.TreeExplainer(model)
         shap_values = explainer.shap_values(input_features)
 
+        # Handle different SHAP output formats (list for multi-class vs array)
         if isinstance(shap_values, list):
             pred_idx = list(model.classes_).index(prediction)
-            shap_val = shap_values[pred_idx][0]
+            shap_val = np.array(shap_values[pred_idx]).flatten()
+        elif isinstance(shap_values, np.ndarray) and shap_values.ndim == 3:
+            pred_idx = list(model.classes_).index(prediction)
+            shap_val = shap_values[0, :, pred_idx]
         else:
-            shap_val = shap_values[0]
+            shap_val = np.array(shap_values).flatten()
 
         shap_df = pd.DataFrame({
-            "Feature": input_features.columns,
-            "SHAP Value": shap_val,
-            "Feature Value": input_features.iloc[0].values
+            "Feature": list(input_features.columns),
+            "SHAP Value": [float(v) for v in shap_val],
+            "Feature Value": [float(v) for v in input_features.iloc[0].values]
         }).sort_values("SHAP Value", key=abs, ascending=False)
 
         fig_shap, ax_shap = plt.subplots(figsize=(8, 3.5))
