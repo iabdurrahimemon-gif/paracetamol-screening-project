@@ -1,14 +1,6 @@
 """
 Phase 5: Interactive Streamlit Demo
 Project: Rapid Screening Tool for Substandard Pharmaceuticals
-
-Run with: streamlit run app.py
-
-Three sections:
-1. Try the Classifier  - manually input spectral features, get a live prediction
-2. Model Performance    - confusion matrix + feature importance from Phase 3
-3. About the Project    - methodology write-up, including a DFT validation
-                          placeholder to fill in once the Gaussian results are in
 """
 
 import streamlit as st
@@ -17,70 +9,430 @@ import numpy as np
 import joblib
 import matplotlib.pyplot as plt
 
+
+# =========================================================
+# PAGE CONFIG
+# =========================================================
+
 st.set_page_config(
-    page_title="Paracetamol Screening Tool",
+    page_title="Paracetamol Screening | UV-Vis + ML",
     page_icon="🧪",
     layout="wide",
+    initial_sidebar_state="collapsed",
 )
 
-# ---------------------------------------------------------
-# Load trained model (Phase 3 output)
-# ---------------------------------------------------------
+
+# =========================================================
+# CUSTOM CSS
+# =========================================================
+
+st.markdown(
+    """
+    <style>
+
+    /* ---------- GLOBAL ---------- */
+    .stApp {
+        background-color: #f7f9fc;
+    }
+
+    .block-container {
+        max-width: 1450px;
+        padding-top: 1.8rem;
+        padding-bottom: 3rem;
+    }
+
+    /* ---------- HEADER ---------- */
+    .hero {
+        background: linear-gradient(135deg, #0b2545 0%, #123f68 100%);
+        padding: 2.2rem 2.5rem;
+        border-radius: 18px;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 8px 25px rgba(11, 37, 69, 0.12);
+    }
+
+    .hero-title {
+        color: white;
+        font-size: 2.5rem;
+        font-weight: 750;
+        margin: 0;
+        letter-spacing: -0.8px;
+    }
+
+    .hero-subtitle {
+        color: #dbeafe;
+        font-size: 1.05rem;
+        margin-top: 0.5rem;
+        margin-bottom: 0;
+    }
+
+    .hero-badge {
+        display: inline-block;
+        background: rgba(255,255,255,0.12);
+        color: #e0f2fe;
+        padding: 0.35rem 0.8rem;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        margin-top: 1rem;
+        border: 1px solid rgba(255,255,255,0.15);
+    }
+
+    /* ---------- SECTION TITLES ---------- */
+    .section-title {
+        color: #0b2545;
+        font-size: 1.35rem;
+        font-weight: 700;
+        margin-top: 0.5rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .section-subtitle {
+        color: #64748b;
+        font-size: 0.92rem;
+        margin-bottom: 1.4rem;
+    }
+
+    /* ---------- STAND-OUT CARDS ---------- */
+    .standout-class {
+        background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%) !important;
+        border: 2px solid #10b981 !important;
+        border-radius: 14px;
+        padding: 1.15rem 1.3rem;
+        box-shadow: 0 6px 20px rgba(16, 185, 129, 0.15);
+        min-height: 105px;
+    }
+
+    .standout-confidence {
+        background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+        border: 2px solid #3b82f6 !important;
+        border-radius: 14px;
+        padding: 1.15rem 1.3rem;
+        box-shadow: 0 6px 20px rgba(59, 130, 246, 0.15);
+        min-height: 105px;
+    }
+
+    .metric-card {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 1.15rem 1.3rem;
+        box-shadow: 0 3px 12px rgba(15, 23, 42, 0.04);
+        min-height: 105px;
+    }
+
+    .metric-label {
+        color: #64748b;
+        font-size: 0.78rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+    }
+
+    .metric-value {
+        color: #0f172a;
+        font-size: 1.65rem;
+        font-weight: 750;
+        margin-top: 0.25rem;
+    }
+
+    .metric-unit {
+        color: #64748b;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+
+    /* ---------- RESULT BOXES ---------- */
+    .result-genuine {
+        background: #ecfdf5;
+        border: 1px solid #a7f3d0;
+        border-left: 6px solid #10b981;
+        border-radius: 14px;
+        padding: 1.3rem 1.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .result-warning {
+        background: #fffbeb;
+        border: 1px solid #fde68a;
+        border-left: 6px solid #f59e0b;
+        border-radius: 14px;
+        padding: 1.3rem 1.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .result-danger {
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        border-left: 6px solid #ef4444;
+        border-radius: 14px;
+        padding: 1.3rem 1.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .result-neutral {
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        border-left: 6px solid #3b82f6;
+        border-radius: 14px;
+        padding: 1.3rem 1.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .result-title {
+        font-size: 1.45rem;
+        font-weight: 750;
+        color: #0f172a;
+    }
+
+    .result-description {
+        color: #475569;
+        font-size: 0.9rem;
+        margin-top: 0.35rem;
+    }
+
+    /* ---------- CUSTOM BUTTON TABS ---------- */
+    div.stButton > button {
+        border-radius: 12px !important;
+        height: 46px !important;
+        font-weight: 600 !important;
+        border: 2px solid #94a3b8 !important;
+        transition: all 0.2s ease;
+    }
+
+    div.stButton > button[kind="primary"] {
+        background-color: #0b4f82 !important;
+        border-color: #0b4f82 !important;
+        color: white !important;
+        font-weight: 700 !important;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 14px rgba(11, 79, 130, 0.3) !important;
+    }
+
+    div.stButton > button[kind="secondary"]:hover {
+        background-color: #f1f5f9 !important;
+        border-color: #64748b !important;
+    }
+
+    /* ---------- SLIDERS ---------- */
+    div[data-testid="stSlider"] > div > div > div > div {
+        background-color: #b3e0ff !important;
+    }
+
+    div[data-baseweb="slider"] > div > div > div:nth-child(1) {
+        background-color: #1e40af !important;
+    }
+
+    div[data-baseweb="slider"] [role="slider"] {
+        background-color: #1e3a8a !important;
+        border: 3px solid white !important;
+        box-shadow: 0 2px 8px rgba(30, 64, 175, 0.4);
+    }
+
+    div[data-testid="stSlider"] div[data-testid="stThumbValue"],
+    div[data-baseweb="slider"] div[data-testid="stThumbValue"] {
+        background: transparent !important;
+        color: #0f172a !important;
+        font-weight: 700 !important;
+        box-shadow: none !important;
+        border: none !important;
+    }
+
+    div[data-testid="stSlider"] label,
+    div[data-testid="stSlider"] p,
+    div[data-testid="stSlider"] span {
+        color: #000000 !important;
+        font-weight: 700 !important;
+    }
+
+    .stSlider {
+        padding-top: 0.3rem;
+        padding-bottom: 0.8rem;
+    }
+
+    /* ---------- OTHER ---------- */
+    hr {
+        border: none;
+        border-top: 1px solid #e2e8f0;
+        margin: 2rem 0;
+    }
+
+    .footer {
+        text-align: center;
+        color: #94a3b8;
+        font-size: 0.78rem;
+        margin-top: 3rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid #e2e8f0;
+    }
+
+    .info-card {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 1.6rem 1.8rem;
+        box-shadow: 0 4px 15px rgba(15, 23, 42, 0.04);
+    }
+
+    .info-card h4 {
+        color: #0b2545;
+        margin-top: 0;
+        margin-bottom: 0.8rem;
+        font-size: 1.15rem;
+    }
+
+    .pipeline-step {
+        background: #f0f7ff;
+        border-left: 5px solid #0b4f82;
+        border-radius: 10px;
+        padding: 1rem 1.2rem;
+        margin-bottom: 0.9rem;
+    }
+
+    .pipeline-step strong {
+        color: #0b2545;
+    }
+
+    .stNumberInput input {
+        color: #0f172a !important;
+        font-weight: 600 !important;
+    }
+
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+
+# =========================================================
+# LOAD MODEL
+# =========================================================
+
 @st.cache_resource
 def load_model():
     return joblib.load("paracetamol_classifier_model.joblib")
 
 model = load_model()
 
-# ---------------------------------------------------------
-# Load reference data for realistic slider ranges
-# ---------------------------------------------------------
-@st.cache_data
-def load_features():
-    return pd.read_csv("paracetamol_extracted_features.csv")
 
-features_df = load_features()
+# =========================================================
+# HERO HEADER
+# =========================================================
 
-st.title("🧪 Rapid Screening Tool for Substandard Pharmaceuticals")
-st.caption("UV-Vis Spectral Fingerprinting + Machine Learning | Paracetamol proof-of-concept")
+st.markdown(
+    """
+    <div class="hero">
+        <div class="hero-title">Rapid Pharmaceutical Screening</div>
+        <div class="hero-subtitle">
+            UV-Vis Spectral Fingerprinting + Machine Learning
+            for Paracetamol Quality Screening
+        </div>
+        <div class="hero-badge">
+            RESEARCH PROTOTYPE · PARACETAMOL PROOF-OF-CONCEPT
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
-tab1, tab2, tab3 = st.tabs(["Try the Classifier", "Model Performance", "About the Project"])
 
-# ===========================================================
-# TAB 1: Interactive Classifier
-# ===========================================================
-with tab1:
-    st.subheader("Enter spectral features to get a live prediction")
-    st.write(
-        "Adjust the sliders below to simulate a UV-Vis spectral reading, "
-        "or enter your own measured values. The model will predict whether "
-        "the sample looks genuine or shows signs of being substandard."
+# =========================================================
+# CUSTOM BUTTON TABS
+# =========================================================
+
+if "active_tab" not in st.session_state:
+    st.session_state.active_tab = "Try the Classifier"
+
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    if st.button(
+        "Try the Classifier",
+        use_container_width=True,
+        type="primary" if st.session_state.active_tab == "Try the Classifier" else "secondary",
+    ):
+        st.session_state.active_tab = "Try the Classifier"
+        st.rerun()
+
+with col2:
+    if st.button(
+        "Model Performance",
+        use_container_width=True,
+        type="primary" if st.session_state.active_tab == "Model Performance" else "secondary",
+    ):
+        st.session_state.active_tab = "Model Performance"
+        st.rerun()
+
+with col3:
+    if st.button(
+        "About the Project",
+        use_container_width=True,
+        type="primary" if st.session_state.active_tab == "About the Project" else "secondary",
+    ):
+        st.session_state.active_tab = "About the Project"
+        st.rerun()
+
+st.markdown("<br>", unsafe_allow_html=True)
+
+
+# =========================================================
+# TAB 1 — CLASSIFIER
+# =========================================================
+
+if st.session_state.active_tab == "Try the Classifier":
+
+    st.markdown(
+        '<div class="section-title">Interactive Spectral Screening</div>',
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        '<div class="section-subtitle">'
+        'Adjust the spectral features below and evaluate how the trained classifier interprets the sample.'
+        '</div>',
+        unsafe_allow_html=True,
     )
 
-    col1, col2 = st.columns([1, 1])
+    st.markdown("### Spectral Input")
+    st.caption("Type exact values on the left **or** use the sliders on the right.")
 
-    with col1:
+    left_col, right_col = st.columns(2, gap="large")
+
+    with left_col:
+        st.markdown("**Exact Values**")
+        lambda_max = st.number_input(
+            "λmax (nm)", min_value=225.0, max_value=265.0, value=243.0, step=0.5,
+            help="Expected paracetamol absorption maximum ≈ 243 nm"
+        )
+        peak_height = st.number_input(
+            "Peak height (A.U.)", min_value=0.2, max_value=1.0, value=0.80, step=0.01
+        )
+        fwhm = st.number_input(
+            "FWHM (nm)", min_value=15.0, max_value=60.0, value=28.0, step=0.5
+        )
+        area_under_curve = st.number_input(
+            "Area under curve", min_value=5.0, max_value=40.0, value=23.0, step=0.5
+        )
+
+    with right_col:
+        st.markdown("**Sliders**")
         lambda_max = st.slider(
-            "λmax — Peak wavelength (nm)",
-            min_value=225.0, max_value=265.0, value=243.0, step=0.5,
-            help="Wavelength of maximum absorbance. Genuine paracetamol peaks near 243 nm.",
+            "λmax — Peak wavelength", min_value=225.0, max_value=265.0,
+            value=float(lambda_max), step=0.5
         )
         peak_height = st.slider(
-            "Peak Height (Absorbance, A.U.)",
-            min_value=0.2, max_value=1.0, value=0.80, step=0.01,
-            help="Higher = more concentrated. Substandard (low-dose) samples show reduced height.",
+            "Peak height — Absorbance", min_value=0.2, max_value=1.0,
+            value=float(peak_height), step=0.01
         )
         fwhm = st.slider(
-            "FWHM — Peak Width (nm)",
-            min_value=15.0, max_value=60.0, value=28.0, step=0.5,
-            help="Width of the absorbance band. Degraded/impure samples show broader peaks.",
+            "FWHM — Peak width", min_value=15.0, max_value=60.0,
+            value=float(fwhm), step=0.5
         )
         area_under_curve = st.slider(
-            "Area Under Curve",
-            min_value=5.0, max_value=40.0, value=23.0, step=0.5,
-            help="Total absorbance signal across the scan range.",
+            "Area under curve", min_value=5.0, max_value=40.0,
+            value=float(area_under_curve), step=0.5
         )
 
+    st.markdown("---")
+
+    # Prediction
     input_features = pd.DataFrame([{
         "lambda_max": lambda_max,
         "peak_height": peak_height,
@@ -92,120 +444,259 @@ with tab1:
     probabilities = model.predict_proba(input_features)[0]
     class_labels = model.classes_
 
-    with col2:
-        st.markdown("### Prediction")
+    label_display = {
+        "genuine": (
+            "Likely Genuine",
+            "The spectral feature pattern is consistent with the genuine reference class.",
+            "genuine",
+        ),
+        "substandard_low_dose": (
+            "Potentially Substandard",
+            "The model detects a spectral pattern consistent with reduced active-ingredient concentration.",
+            "warning",
+        ),
+        "wrong_api": (
+            "Potential Wrong / Substitute API",
+            "The predicted spectral pattern differs from the expected paracetamol reference.",
+            "danger",
+        ),
+        "degraded_impure": (
+            "Potentially Degraded / Impure",
+            "The spectral characteristics are consistent with altered or broadened absorption.",
+            "warning",
+        ),
+    }
 
-        label_display = {
-            "genuine": ("✅ Genuine", "This sample's spectral signature matches expected genuine paracetamol."),
-            "substandard_low_dose": ("⚠️ Substandard (Low Dose)", "Reduced concentration signal detected."),
-            "wrong_api": ("🚫 Wrong/Substitute API", "Peak position doesn't match expected paracetamol wavelength."),
-            "degraded_impure": ("⚠️ Degraded / Impure", "Broadened peak shape suggests degradation or impurities."),
-        }
+    display_text, description, result_type = label_display.get(
+        prediction, (str(prediction), "", "neutral")
+    )
+    result_class = f"result-{result_type}"
+    max_probability = float(np.max(probabilities))
 
-        display_text, description = label_display.get(prediction, (prediction, ""))
-        st.markdown(f"## {display_text}")
-        st.write(description)
-
-        st.markdown("#### Confidence by class")
-        prob_df = pd.DataFrame({
-            "Class": class_labels,
-            "Probability": probabilities,
-        }).sort_values("Probability", ascending=True)
-
-        fig, ax = plt.subplots(figsize=(5, 3))
-        ax.barh(prob_df["Class"], prob_df["Probability"], color="steelblue")
-        ax.set_xlim(0, 1)
-        ax.set_xlabel("Probability")
-        for i, v in enumerate(prob_df["Probability"]):
-            ax.text(v + 0.02, i, f"{v:.0%}", va="center")
-        st.pyplot(fig)
-
-    st.markdown("---")
-    st.markdown("#### What this spectrum looks like")
-
-    wavelengths = np.linspace(200, 400, 500)
-    simulated_spectrum = peak_height * np.exp(-((wavelengths - lambda_max) ** 2) / (2 * (fwhm / 2.355) ** 2))
-
-    fig2, ax2 = plt.subplots(figsize=(9, 4))
-    ax2.plot(wavelengths, simulated_spectrum, color="steelblue", linewidth=2)
-    ax2.set_xlabel("Wavelength (nm)")
-    ax2.set_ylabel("Absorbance (A.U.)")
-    ax2.set_title("Reconstructed Spectrum from Your Inputs")
-    ax2.grid(alpha=0.3)
-    st.pyplot(fig2)
-
-# ===========================================================
-# TAB 2: Model Performance
-# ===========================================================
-with tab2:
-    st.subheader("How well does the classifier actually perform?")
-    st.write(
-        "These results are on a held-out test set (samples the model never saw during training), "
-        "using a synthetic dataset designed with realistic, overlapping class boundaries — "
-        "not artificially perfect separation."
+    st.markdown(
+        f"""
+        <div class="{result_class}">
+            <div class="result-title">{display_text}</div>
+            <div class="result-description">{description}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
 
-    perf_col1, perf_col2 = st.columns(2)
+    m1, m2 = st.columns(2)
+    with m1:
+        st.markdown(
+            f"""
+            <div class="standout-class">
+                <div class="metric-label">Predicted Class</div>
+                <div class="metric-value">{display_text}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    with m2:
+        st.markdown(
+            f"""
+            <div class="standout-confidence">
+                <div class="metric-label">Model Confidence</div>
+                <div class="metric-value">{max_probability:.0%}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("#### Probability Distribution")
+
+    prob_df = pd.DataFrame({
+        "Class": class_labels,
+        "Probability": probabilities,
+    }).sort_values("Probability", ascending=True)
+
+    fig, ax = plt.subplots(figsize=(8, 3.2))
+    ax.barh(prob_df["Class"], prob_df["Probability"], color="#1e40af")
+    ax.set_xlim(0, 1)
+    ax.set_xlabel("Model probability")
+    ax.grid(axis="x", alpha=0.2)
+    for i, v in enumerate(prob_df["Probability"]):
+        ax.text(min(v + 0.02, 0.94), i, f"{v:.0%}", va="center")
+    fig.tight_layout()
+    st.pyplot(fig, use_container_width=True)
+    plt.close(fig)
+
+    # Feature Summary
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown('<div class="section-title">Sample Feature Summary</div>', unsafe_allow_html=True)
+
+    k1, k2, k3, k4 = st.columns(4)
+    metrics = [
+        ("λmax", f"{lambda_max:.1f}", "nm"),
+        ("Peak Height", f"{peak_height:.2f}", "A.U."),
+        ("FWHM", f"{fwhm:.1f}", "nm"),
+        ("Area", f"{area_under_curve:.1f}", "A.U.·nm"),
+    ]
+    for col, (label, value, unit) in zip([k1, k2, k3, k4], metrics):
+        with col:
+            st.markdown(
+                f"""
+                <div class="metric-card">
+                    <div class="metric-label">{label}</div>
+                    <div class="metric-value">{value} <span class="metric-unit">{unit}</span></div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+    # Spectrum
+    st.markdown("<hr>", unsafe_allow_html=True)
+    st.markdown('<div class="section-title">Reconstructed UV-Vis Spectrum</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="section-subtitle">A Gaussian-shaped absorption band reconstructed from the four input features.</div>',
+        unsafe_allow_html=True,
+    )
+
+    wavelengths = np.linspace(200, 400, 500)
+    sigma = fwhm / 2.355
+    simulated_spectrum = peak_height * np.exp(-((wavelengths - lambda_max) ** 2) / (2 * sigma**2))
+
+    fig2, ax2 = plt.subplots(figsize=(12, 4.5))
+    ax2.plot(wavelengths, simulated_spectrum, linewidth=2.5, color="#1e40af")
+    ax2.axvline(lambda_max, linestyle="--", linewidth=1, alpha=0.6, color="#f59e0b")
+    ax2.scatter([lambda_max], [peak_height], s=55, zorder=5, color="#ef4444")
+    ax2.annotate(
+        f"λmax = {lambda_max:.1f} nm",
+        xy=(lambda_max, peak_height),
+        xytext=(lambda_max + 10, peak_height * 0.85),
+        arrowprops=dict(arrowstyle="->", alpha=0.5),
+    )
+    ax2.set_xlabel("Wavelength (nm)")
+    ax2.set_ylabel("Absorbance (A.U.)")
+    ax2.set_xlim(200, 400)
+    ax2.grid(alpha=0.18)
+    fig2.tight_layout()
+    st.pyplot(fig2, use_container_width=True)
+    plt.close(fig2)
+
+    st.info("⚠️ The spectrum shown above is reconstructed from the selected features for visualization. It is not a raw experimental spectrum.")
+
+
+# =========================================================
+# TAB 2 — MODEL PERFORMANCE
+# =========================================================
+
+elif st.session_state.active_tab == "Model Performance":
+
+    st.markdown('<div class="section-title">Model Performance</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="section-subtitle">Evaluation of the Random Forest classifier on the held-out test set.</div>',
+        unsafe_allow_html=True,
+    )
+
+    p1, p2, p3, p4 = st.columns(4)
+    with p1:
+        st.markdown("""<div class="metric-card"><div class="metric-label">Test Accuracy</div><div class="metric-value">95%</div></div>""", unsafe_allow_html=True)
+    with p2:
+        st.markdown("""<div class="metric-card"><div class="metric-label">Algorithm</div><div class="metric-value" style="font-size:1.35rem;">Random Forest</div></div>""", unsafe_allow_html=True)
+    with p3:
+        st.markdown("""<div class="metric-card"><div class="metric-label">Input Features</div><div class="metric-value">4</div></div>""", unsafe_allow_html=True)
+    with p4:
+        st.markdown("""<div class="metric-card"><div class="metric-label">Classes</div><div class="metric-value">4</div></div>""", unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.info("The dataset is **synthetic** and was designed with realistic class overlap and instrument-like variability. Therefore, the reported performance should be interpreted as **proof-of-concept** rather than real-world clinical or regulatory performance.")
+
+    perf_col1, perf_col2 = st.columns(2, gap="large")
     with perf_col1:
-        st.markdown("**Confusion Matrix**")
+        st.markdown("### Confusion Matrix")
         try:
             st.image("phase3_confusion_matrix.png", use_container_width=True)
         except Exception:
-            st.info("Run phase3_train_classifier.py first to generate this image.")
-
+            st.warning("Confusion matrix image not found.")
     with perf_col2:
-        st.markdown("**Feature Importance**")
+        st.markdown("### Feature Importance")
         try:
             st.image("phase3_feature_importance.png", use_container_width=True)
         except Exception:
-            st.info("Run phase3_train_classifier.py first to generate this image.")
+            st.warning("Feature importance image not found.")
 
-    st.markdown("---")
-    st.markdown("**Test Accuracy: 95%** — the only meaningful confusion is between "
-                "*genuine* and *substandard (low-dose)* samples, which makes chemical "
-                "sense since their concentration ranges were designed to overlap slightly, "
-                "mirroring real borderline QC cases.")
-
-# ===========================================================
-# TAB 3: About the Project
-# ===========================================================
-with tab3:
-    st.subheader("Methodology")
-
-    st.markdown("""
-**Motivation:** Substandard and counterfeit medicines are a documented regulatory
-challenge in markets like Bangladesh, where full confirmatory testing (HPLC, LC-MS)
-isn't feasible for every batch. This project explores whether a cheap, fast UV-Vis
-"spectral fingerprint," combined with machine learning, can serve as a low-cost
-pre-screening step — not a replacement for confirmatory testing.
-
-**Pipeline:**
-1. **Synthetic spectra generation** — realistic UV-Vis spectra simulated for genuine,
-   substandard (low-dose), wrong/substitute API, and degraded/impure paracetamol samples,
-   with deliberate class overlap and instrument noise to mirror real analytical data.
-2. **Feature extraction** — λmax, peak height, FWHM, and area under the curve pulled
-   from each raw spectrum.
-3. **Classification** — a Random Forest classifier trained on these features, achieving
-   95% test accuracy with chemically sensible confusion patterns.
-4. **DFT validation** — the genuine reference spectrum's λmax was independently
-   cross-checked against a TD-DFT prediction (Gaussian 09, B3LYP/6-31G(d,p), PCM water
-   solvent model, 10 excited states).
-""")
-
-    st.markdown("### DFT Validation Results")
-    st.success(
-        "✅ **TD-DFT prediction complete.**\n\n"
-        "The dominant electronic transition (highest oscillator strength among 10 "
-        "computed excited states) was predicted at **λmax = 248.72 nm** (f = 0.5021), "
-        "compared to the experimental/reference value of **~243 nm** — a difference "
-        "of **5.72 nm**.\n\n"
-        "This level of agreement is consistent with the well-documented systematic "
-        "overestimation of vertical excitation energies by B3LYP for π→π* transitions, "
-        "and supports the validity of the reference spectrum used throughout this project."
+    st.markdown("<hr>", unsafe_allow_html=True)
+    st.markdown(
+        """
+        <div class="info-card">
+            <h4>Interpretation</h4>
+            <p>The classifier achieved <strong>95% test accuracy</strong> on the synthetic held-out dataset.
+            The most meaningful potential confusion occurs between <strong>genuine</strong> and
+            <strong>low-dose</strong> samples, which is chemically plausible because their spectral
+            characteristics can partially overlap.</p>
+            <p style="margin-bottom:0;">Feature importance analysis shows that <strong>λmax</strong> and <strong>peak height</strong>
+            are the most discriminative descriptors for separating the four quality classes.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
 
-    with st.expander("See all 10 computed excited states"):
+
+# =========================================================
+# TAB 3 — ABOUT
+# =========================================================
+
+elif st.session_state.active_tab == "About the Project":
+
+    st.markdown('<div class="section-title">About the Research Project</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="section-subtitle">From simulated UV-Vis spectra to machine-learning-based pharmaceutical screening.</div>',
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        """
+        <div class="info-card">
+            <h4>🎯 Motivation</h4>
+            <p>Substandard and counterfeit medicines represent an important quality-control challenge.
+            Full confirmatory analytical methods such as HPLC and LC-MS provide high confidence
+            but may not be practical for rapid screening of every sample.</p>
+            <p style="margin-bottom:0;">This project explores whether a low-cost UV-Vis spectral fingerprint, combined with
+            machine learning, could provide a preliminary screening step before confirmatory
+            laboratory analysis.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("### 🔬 Analytical Pipeline")
+
+    col_a, col_b = st.columns(2, gap="large")
+    with col_a:
+        st.markdown(
+            """
+            <div class="pipeline-step"><strong>01 — Synthetic Spectra Generation</strong><br>
+            Simulated UV-Vis spectra for four classes:<br>
+            • Genuine paracetamol<br>• Substandard / low-dose<br>
+            • Wrong or substitute API<br>• Degraded / impure material</div>
+            <div class="pipeline-step"><strong>02 — Feature Extraction</strong><br>
+            Four spectral descriptors extracted:<br>
+            • λmax &nbsp;• Peak height &nbsp;• FWHM &nbsp;• Area under the curve</div>
+            """,
+            unsafe_allow_html=True,
+        )
+    with col_b:
+        st.markdown(
+            """
+            <div class="pipeline-step"><strong>03 — Machine Learning</strong><br>
+            A Random Forest classifier was trained using the extracted spectral features.</div>
+            <div class="pipeline-step"><strong>04 — Computational Validation</strong><br>
+            The reference absorption region was independently compared with a TD-DFT calculation using Gaussian 09.</div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    st.markdown("<hr>", unsafe_allow_html=True)
+    st.markdown("### ⚛️ DFT Validation")
+    st.success("**TD-DFT prediction:** λmax = 248.72 nm  |  Oscillator strength = 0.5021  |  Experimental/reference ≈ 243 nm  |  Difference = 5.72 nm")
+    st.write("The dominant electronic transition among the ten calculated excited states was predicted at 248.72 nm with an oscillator strength of 0.5021.")
+
+    with st.expander("View all 10 calculated excited states"):
         excited_states = pd.DataFrame({
             "State": list(range(1, 11)),
             "Energy (eV)": [4.7254, 4.9849, 5.1703, 5.9781, 6.2660, 6.3422, 6.6870, 6.7757, 6.8327, 7.0701],
@@ -213,16 +704,44 @@ pre-screening step — not a replacement for confirmatory testing.
             "Oscillator Strength (f)": [0.0409, 0.5021, 0.0003, 0.0001, 0.0889, 0.0783, 0.3898, 0.0000, 0.0099, 0.0000],
         })
         st.dataframe(excited_states, use_container_width=True, hide_index=True)
-        st.caption("State 2 (bold in discussion above) has by far the highest oscillator "
-                   "strength and corresponds to the experimentally observable absorption band.")
 
-    st.markdown("""
-### Limitations
-- Spectra are **simulated**, not measured from real samples — a reasonable proxy for
-  demonstrating the pipeline, not a substitute for lab-validated data
-- This is a **proof-of-concept screening aid**, not a regulatory-grade diagnostic method
-- Currently limited to paracetamol; extending to other APIs would need new reference data
+    st.markdown("<hr>", unsafe_allow_html=True)
+    st.markdown("### ⚠️ Limitations")
+    st.warning(
+        """
+        **Important scientific limitations**
+        - The spectra used are **simulated**, not measured from real samples.
+        - This is a **proof-of-concept** and has not been validated on real pharmaceutical batches.
+        - Not a regulatory-grade quality-control method.
+        - Confirmatory testing (e.g. HPLC) is still required.
+        - Currently limited to **paracetamol**.
+        """
+    )
 
-### Author
-Abdur Rahim Emon — M.S. Inorganic Chemistry, University of Chittagong
-""")
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown(
+        """
+        <div class="info-card">
+            <h4>👨‍🔬 Researcher</h4>
+            <p style="margin-bottom:0.4rem;"><strong>Abdur Rahim Emon</strong><br>
+            M.S. Inorganic Chemistry<br>University of Chittagong</p>
+            <p style="margin-bottom:0; color:#64748b;">Project: Rapid Screening Tool for Substandard Pharmaceuticals</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+# =========================================================
+# FOOTER
+# =========================================================
+
+st.markdown(
+    """
+    <div class="footer">
+        Rapid Pharmaceutical Screening Tool · UV-Vis + Machine Learning<br>
+        Research Prototype · Not a Substitute for Confirmatory Pharmaceutical QC
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
