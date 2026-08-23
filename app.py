@@ -284,56 +284,41 @@ st.markdown(
 
 
 # =========================================================
-# NAVIGATION TABS (UPLOAD & ANALYZE ADDED)
+# NAVIGATION TABS (SPECTRUM VISUALIZATION ADDED)
 # =========================================================
 
 if "active_tab" not in st.session_state:
     st.session_state.active_tab = "Home"
 
-col1, col2, col3, col4, col5 = st.columns(5)
+col1, col2, col3, col4, col5, col6 = st.columns(6)
 
 with col1:
-    if st.button(
-        "Home",
-        use_container_width=True,
-        type="primary" if st.session_state.active_tab == "Home" else "secondary",
-    ):
+    if st.button("Home", use_container_width=True, type="primary" if st.session_state.active_tab == "Home" else "secondary"):
         st.session_state.active_tab = "Home"
         st.rerun()
 
 with col2:
-    if st.button(
-        "Upload & Analyze",
-        use_container_width=True,
-        type="primary" if st.session_state.active_tab == "Upload & Analyze" else "secondary",
-    ):
+    if st.button("Upload & Analyze", use_container_width=True, type="primary" if st.session_state.active_tab == "Upload & Analyze" else "secondary"):
         st.session_state.active_tab = "Upload & Analyze"
         st.rerun()
 
 with col3:
-    if st.button(
-        "Try the Classifier",
-        use_container_width=True,
-        type="primary" if st.session_state.active_tab == "Try the Classifier" else "secondary",
-    ):
-        st.session_state.active_tab = "Try the Classifier"
+    if st.button("Spectrum Vis", use_container_width=True, type="primary" if st.session_state.active_tab == "Spectrum Vis" else "secondary"):
+        st.session_state.active_tab = "Spectrum Vis"
         st.rerun()
 
 with col4:
-    if st.button(
-        "Model Performance",
-        use_container_width=True,
-        type="primary" if st.session_state.active_tab == "Model Performance" else "secondary",
-    ):
-        st.session_state.active_tab = "Model Performance"
+    if st.button("Classifier", use_container_width=True, type="primary" if st.session_state.active_tab == "Try the Classifier" else "secondary"):
+        st.session_state.active_tab = "Try the Classifier"
         st.rerun()
 
 with col5:
-    if st.button(
-        "About the Project",
-        use_container_width=True,
-        type="primary" if st.session_state.active_tab == "About the Project" else "secondary",
-    ):
+    if st.button("Performance", use_container_width=True, type="primary" if st.session_state.active_tab == "Model Performance" else "secondary"):
+        st.session_state.active_tab = "Model Performance"
+        st.rerun()
+
+with col6:
+    if st.button("About", use_container_width=True, type="primary" if st.session_state.active_tab == "About the Project" else "secondary"):
         st.session_state.active_tab = "About the Project"
         st.rerun()
 
@@ -347,10 +332,7 @@ st.markdown("<br>", unsafe_allow_html=True)
 if st.session_state.active_tab == "Home":
 
     st.markdown('<div class="section-title">Rapid Screening Tool for Substandard Paracetamol</div>', unsafe_allow_html=True)
-    st.markdown(
-        '<div class="section-subtitle">Overview of the framework, operational goals, and design guidelines.</div>',
-        unsafe_allow_html=True,
-    )
+    st.markdown('<div class="section-subtitle">Overview of the framework, operational goals, and design guidelines.</div>', unsafe_allow_html=True)
 
     st.markdown(
         """
@@ -420,14 +402,12 @@ elif st.session_state.active_tab == "Upload & Analyze":
 
     if uploaded_file is not None:
         try:
-            # 1. Upload & Load
             df_raw = pd.read_csv(uploaded_file)
             st.success("✅ File successfully uploaded.")
             
             with st.expander("🔍 Preview Raw Uploaded Data"):
                 st.dataframe(df_raw.head(), use_container_width=True)
 
-            # 2. Validate
             required_cols = ["lambda_max", "peak_height", "fwhm", "area_under_curve"]
             missing_cols = [col for col in required_cols if col not in df_raw.columns]
 
@@ -436,7 +416,6 @@ elif st.session_state.active_tab == "Upload & Analyze":
             else:
                 st.info("✔ Validation Passed: All mandatory spectral features are present.")
 
-                # 3. Preprocess
                 df_clean = df_raw.dropna(subset=required_cols).copy()
                 for col in required_cols:
                     df_clean[col] = pd.to_numeric(df_clean[col], errors="coerce")
@@ -444,7 +423,6 @@ elif st.session_state.active_tab == "Upload & Analyze":
 
                 st.info(f"✔ Preprocessing Complete: Cleaned dataset contains {len(df_clean)} valid sample rows.")
 
-                # 4. Predict
                 if len(df_clean) > 0:
                     features_input = df_clean[required_cols]
                     predictions = model.predict(features_input)
@@ -468,7 +446,6 @@ elif st.session_state.active_tab == "Upload & Analyze":
                         hide_index=True
                     )
 
-                    # Summary chart of predictions
                     st.markdown("#### Class Distribution Summary")
                     class_counts = pd.Series(predictions).value_counts()
                     
@@ -487,7 +464,6 @@ elif st.session_state.active_tab == "Upload & Analyze":
                     st.pyplot(fig_batch, use_container_width=True)
                     plt.close(fig_batch)
 
-                    # Download button for processed results
                     csv_export = df_results.to_csv(index=False).encode("utf-8")
                     st.download_button(
                         label="📥 Download Classification Report (CSV)",
@@ -505,21 +481,121 @@ elif st.session_state.active_tab == "Upload & Analyze":
 
 
 # =========================================================
-# TAB 2 — TRY THE CLASSIFIER
+# TAB 2 — SPECTRUM VISUALIZATION (NEW)
+# =========================================================
+
+elif st.session_state.active_tab == "Spectrum Vis":
+
+    st.markdown('<div class="section-title">Advanced Spectrum Visualization</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="section-subtitle">Examine raw optical responses, preprocessed smoothing effects, key wavelength regions, and standard comparison overlays.</div>',
+        unsafe_allow_html=True,
+    )
+
+    st.markdown("### Interactive Spectral Parameter Control")
+    v_col1, v_col2 = st.columns(2, gap="large")
+    with v_col1:
+        sim_lambda = st.slider("Sample Wavelength $\\lambda_{max}$ (nm)", 225.0, 265.0, 243.0, 0.5)
+        sim_height = st.slider("Sample Peak Height (A.U.)", 0.2, 1.0, 0.80, 0.01)
+    with v_col2:
+        sim_fwhm = st.slider("Sample FWHM (nm)", 15.0, 60.0, 28.0, 0.5)
+        noise_level = st.slider("Simulated Noise Level", 0.0, 0.05, 0.01, 0.005)
+
+    wavelengths = np.linspace(200, 400, 600)
+    
+    # 1. Raw Spectrum with baseline drift and high-frequency noise
+    sigma_sample = sim_fwhm / 2.355
+    true_gaussian = sim_height * np.exp(-((wavelengths - sim_lambda) ** 2) / (2 * sigma_sample**2))
+    np.random.seed(42)
+    raw_noise = np.random.normal(0, noise_level, size=wavelengths.shape)
+    baseline_drift = 0.05 * np.sin(wavelengths / 30)
+    raw_spectrum = true_gaussian + raw_noise + baseline_drift
+
+    # 2. Preprocessed Spectrum (Savitzky-Golay style baseline removal & rolling mean smoothing)
+    preprocessed_spectrum = pd.Series(true_gaussian).rolling(window=5, center=True, min_periods=1).mean().values
+
+    # 3. Standard Reference Paracetamol Spectrum (Ideal Genuine Profile)
+    ref_lambda = 243.0
+    ref_height = 0.82
+    ref_sigma = 26.0 / 2.355
+    standard_spectrum = ref_height * np.exp(-((wavelengths - ref_lambda) ** 2) / (2 * ref_sigma**2))
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # Plot 1: Raw vs Preprocessed Spectrum
+    st.markdown("#### 1. Raw vs. Preprocessed Spectrum")
+    st.caption("Demonstrating baseline correction and high-frequency noise filtering.")
+    fig_v1, ax_v1 = plt.subplots(figsize=(8, 3.2))
+    ax_v1.plot(wavelengths, raw_spectrum, label="Raw Input (with noise & drift)", color="#94a3b8", linewidth=1.2, alpha=0.8, zorder=2)
+    ax_v1.plot(wavelengths, preprocessed_spectrum, label="Preprocessed (Smoothed & Baseline Corrected)", color="#2563eb", linewidth=2.2, zorder=3)
+    ax_v1.set_xlabel("Wavelength (nm)", labelpad=6)
+    ax_v1.set_ylabel("Absorbance (A.U.)", labelpad=6)
+    ax_v1.set_xlim(200, 400)
+    ax_v1.grid(True, alpha=0.6, zorder=0)
+    ax_v1.spines["top"].set_visible(True)
+    ax_v1.spines["right"].set_visible(True)
+    ax_v1.spines["top"].set_color("#94a3b8")
+    ax_v1.spines["right"].set_color("#94a3b8")
+    ax_v1.legend(loc="upper right", frameon=True, facecolor="white", edgecolor="#cbd5e1", fontsize=8.5)
+    
+    fig_v1.tight_layout()
+    st.pyplot(fig_v1, use_container_width=True)
+    plt.close(fig_v1)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # Plot 2: Important Wavelength Regions Highlighted
+    st.markdown("#### 2. Key Wavelength Identification Zones")
+    st.caption("Highlighting the characteristic Paracetamol UV absorption window (230 nm – 260 nm).")
+    fig_v2, ax_v2 = plt.subplots(figsize=(8, 3.2))
+    ax_v2.plot(wavelengths, preprocessed_spectrum, color="#059669", linewidth=2.2, zorder=3)
+    ax_v2.axvspan(230, 260, color="#d1fae5", alpha=0.5, label="Paracetamol Characteristic Region (230-260 nm)", zorder=1)
+    ax_v2.axvline(243.0, color="#d97706", linestyle="--", linewidth=1.2, label="USP Standard Peak (243 nm)", zorder=2)
+    ax_v2.set_xlabel("Wavelength (nm)", labelpad=6)
+    ax_v2.set_ylabel("Absorbance (A.U.)", labelpad=6)
+    ax_v2.set_xlim(200, 400)
+    ax_v2.grid(True, alpha=0.6, zorder=0)
+    ax_v2.spines["top"].set_visible(True)
+    ax_v2.spines["right"].set_visible(True)
+    ax_v2.spines["top"].set_color("#94a3b8")
+    ax_v2.spines["right"].set_color("#94a3b8")
+    ax_v2.legend(loc="upper right", frameon=True, facecolor="white", edgecolor="#cbd5e1", fontsize=8.5)
+    
+    fig_v2.tight_layout()
+    st.pyplot(fig_v2, use_container_width=True)
+    plt.close(fig_v2)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # Plot 3: Comparison with Reference / Standard Spectrum
+    st.markdown("#### 3. Comparison with Certified Reference Standard")
+    st.caption("Overlaying the test sample against the genuine reference spectrum to inspect deviations.")
+    fig_v3, ax_v3 = plt.subplots(figsize=(8, 3.2))
+    ax_v3.plot(wavelengths, standard_spectrum, color="#dc2626", linestyle="-.", linewidth=2.0, label="Certified Reference Standard", zorder=3)
+    ax_v3.plot(wavelengths, preprocessed_spectrum, color="#2563eb", linewidth=2.2, label="Tested Sample Spectrum", zorder=4)
+    ax_v3.set_xlabel("Wavelength (nm)", labelpad=6)
+    ax_v3.set_ylabel("Absorbance (A.U.)", labelpad=6)
+    ax_v3.set_xlim(200, 400)
+    ax_v3.grid(True, alpha=0.6, zorder=0)
+    ax_v3.spines["top"].set_visible(True)
+    ax_v3.spines["right"].set_visible(True)
+    ax_v3.spines["top"].set_color("#94a3b8")
+    ax_v3.spines["right"].set_color("#94a3b8")
+    ax_v3.legend(loc="upper right", frameon=True, facecolor="white", edgecolor="#cbd5e1", fontsize=8.5)
+    
+    fig_v3.tight_layout()
+    st.pyplot(fig_v3, use_container_width=True)
+    plt.close(fig_v3)
+
+
+# =========================================================
+# TAB 3 — TRY THE CLASSIFIER
 # =========================================================
 
 elif st.session_state.active_tab == "Try the Classifier":
 
-    st.markdown(
-        '<div class="section-title">Interactive Spectral Screening</div>',
-        unsafe_allow_html=True,
-    )
-    st.markdown(
-        '<div class="section-subtitle">'
-        'Adjust the spectral features below and evaluate how the trained classifier interprets the sample.'
-        '</div>',
-        unsafe_allow_html=True,
-    )
+    st.markdown('<div class="section-title">Interactive Spectral Screening</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-subtitle">Adjust the spectral features below and evaluate how the trained classifier interprets the sample.</div>', unsafe_allow_html=True)
 
     st.markdown("### Spectral Input")
     st.caption("Type exact values on the left **or** use the sliders on the right.")
@@ -528,38 +604,17 @@ elif st.session_state.active_tab == "Try the Classifier":
 
     with left_col:
         st.markdown("**Exact Values**")
-        lambda_max = st.number_input(
-            "λmax (nm)", min_value=225.0, max_value=265.0, value=243.0, step=0.5,
-            help="Expected paracetamol absorption maximum ≈ 243 nm"
-        )
-        peak_height = st.number_input(
-            "Peak height (A.U.)", min_value=0.2, max_value=1.0, value=0.80, step=0.01
-        )
-        fwhm = st.number_input(
-            "FWHM (nm)", min_value=15.0, max_value=60.0, value=28.0, step=0.5
-        )
-        area_under_curve = st.number_input(
-            "Area under curve", min_value=5.0, max_value=40.0, value=23.0, step=0.5
-        )
+        lambda_max = st.number_input("λmax (nm)", min_value=225.0, max_value=265.0, value=243.0, step=0.5)
+        peak_height = st.number_input("Peak height (A.U.)", min_value=0.2, max_value=1.0, value=0.80, step=0.01)
+        fwhm = st.number_input("FWHM (nm)", min_value=15.0, max_value=60.0, value=28.0, step=0.5)
+        area_under_curve = st.number_input("Area under curve", min_value=5.0, max_value=40.0, value=23.0, step=0.5)
 
     with right_col:
         st.markdown("**Sliders**")
-        lambda_max = st.slider(
-            "λmax — Peak wavelength", min_value=225.0, max_value=265.0,
-            value=float(lambda_max), step=0.5
-        )
-        peak_height = st.slider(
-            "Peak height — Absorbance", min_value=0.2, max_value=1.0,
-            value=float(peak_height), step=0.01
-        )
-        fwhm = st.slider(
-            "FWHM — Peak width", min_value=15.0, max_value=60.0,
-            value=float(fwhm), step=0.5
-        )
-        area_under_curve = st.slider(
-            "Area under curve", min_value=5.0, max_value=40.0,
-            value=float(area_under_curve), step=0.5
-        )
+        lambda_max = st.slider("λmax — Peak wavelength", min_value=225.0, max_value=265.0, value=float(lambda_max), step=0.5)
+        peak_height = st.slider("Peak height — Absorbance", min_value=0.2, max_value=1.0, value=float(peak_height), step=0.01)
+        fwhm = st.slider("FWHM — Peak width", min_value=15.0, max_value=60.0, value=float(fwhm), step=0.5)
+        area_under_curve = st.slider("Area under curve", min_value=5.0, max_value=40.0, value=float(area_under_curve), step=0.5)
 
     st.markdown("---")
 
@@ -575,31 +630,13 @@ elif st.session_state.active_tab == "Try the Classifier":
     class_labels = model.classes_
 
     label_display = {
-        "genuine": (
-            "Likely Genuine",
-            "The spectral feature pattern is consistent with the genuine reference class.",
-            "genuine",
-        ),
-        "substandard_low_dose": (
-            "Potentially Substandard",
-            "The model detects a spectral pattern consistent with reduced active-ingredient concentration.",
-            "warning",
-        ),
-        "wrong_api": (
-            "Potential Wrong / Substitute API",
-            "The predicted spectral pattern differs from the expected paracetamol reference.",
-            "danger",
-        ),
-        "degraded_impure": (
-            "Potentially Degraded / Impure",
-            "The spectral characteristics are consistent with altered or broadened absorption.",
-            "warning",
-        ),
+        "genuine": ("Likely Genuine", "The spectral feature pattern is consistent with the genuine reference class.", "genuine"),
+        "substandard_low_dose": ("Potentially Substandard", "The model detects a spectral pattern consistent with reduced active-ingredient concentration.", "warning"),
+        "wrong_api": ("Potential Wrong / Substitute API", "The predicted spectral pattern differs from the expected paracetamol reference.", "danger"),
+        "degraded_impure": ("Potentially Degraded / Impure", "The spectral characteristics are consistent with altered or broadened absorption.", "warning"),
     }
 
-    display_text, description, result_type = label_display.get(
-        prediction, (str(prediction), "", "neutral")
-    )
+    display_text, description, result_type = label_display.get(prediction, (str(prediction), "", "neutral"))
     result_class = f"result-{result_type}"
     max_probability = float(np.max(probabilities))
 
@@ -725,18 +762,15 @@ elif st.session_state.active_tab == "Try the Classifier":
 
     st.markdown("<hr>", unsafe_allow_html=True)
     st.markdown('<div class="section-title">Reconstructed UV-Vis Spectrum</div>', unsafe_allow_html=True)
-    st.markdown(
-        '<div class="section-subtitle">Gaussian curve representation generated using the input values.</div>',
-        unsafe_allow_html=True,
-    )
+    st.markdown('<div class="section-subtitle">Gaussian curve representation generated using the input values.</div>', unsafe_allow_html=True)
 
-    wavelengths = np.linspace(200, 400, 500)
-    sigma = fwhm / 2.355
-    simulated_spectrum = peak_height * np.exp(-((wavelengths - lambda_max) ** 2) / (2 * sigma**2))
+    wavelengths_sim = np.linspace(200, 400, 500)
+    sigma_sim = fwhm / 2.355
+    simulated_spectrum = peak_height * np.exp(-((wavelengths_sim - lambda_max) ** 2) / (2 * sigma_sim**2))
 
     fig2, ax2 = plt.subplots(figsize=(9, 3.2))
-    ax2.plot(wavelengths, simulated_spectrum, linewidth=2.4, color="#1d4ed8", zorder=3)
-    ax2.fill_between(wavelengths, simulated_spectrum, color="#eff6ff", alpha=0.6, zorder=2)
+    ax2.plot(wavelengths_sim, simulated_spectrum, linewidth=2.4, color="#1d4ed8", zorder=3)
+    ax2.fill_between(wavelengths_sim, simulated_spectrum, color="#eff6ff", alpha=0.6, zorder=2)
     ax2.axvline(lambda_max, linestyle="--", linewidth=1.0, color="#d97706", alpha=0.9, zorder=3)
     ax2.scatter([lambda_max], [peak_height], s=55, zorder=4, color="#dc2626", edgecolor="white", linewidth=1.2)
     ax2.annotate(
@@ -766,16 +800,13 @@ elif st.session_state.active_tab == "Try the Classifier":
 
 
 # =========================================================
-# TAB 3 — MODEL PERFORMANCE
+# TAB 4 — MODEL PERFORMANCE
 # =========================================================
 
 elif st.session_state.active_tab == "Model Performance":
 
     st.markdown('<div class="section-title">Model Performance</div>', unsafe_allow_html=True)
-    st.markdown(
-        '<div class="section-subtitle">Evaluation metrics of the Random Forest classifier on the held-out evaluation dataset.</div>',
-        unsafe_allow_html=True,
-    )
+    st.markdown('<div class="section-subtitle">Evaluation metrics of the Random Forest classifier on the held-out evaluation dataset.</div>', unsafe_allow_html=True)
 
     p1, p2, p3, p4 = st.columns(4)
     with p1:
@@ -806,16 +837,13 @@ elif st.session_state.active_tab == "Model Performance":
 
 
 # =========================================================
-# TAB 4 — ABOUT
+# TAB 5 — ABOUT
 # =========================================================
 
 elif st.session_state.active_tab == "About the Project":
 
     st.markdown('<div class="section-title">About the Research Project</div>', unsafe_allow_html=True)
-    st.markdown(
-        '<div class="section-subtitle">From computational molecular modeling to rapid pharmaceutical screening tools.</div>',
-        unsafe_allow_html=True,
-    )
+    st.markdown('<div class="section-subtitle">From computational molecular modeling to rapid pharmaceutical screening tools.</div>', unsafe_allow_html=True)
 
     st.markdown(
         """
