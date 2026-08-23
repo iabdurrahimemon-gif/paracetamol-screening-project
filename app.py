@@ -11,20 +11,20 @@ import matplotlib.pyplot as plt
 
 
 # =========================================================
-# HIGH-DEFINITION PLOT STYLING
+# HIGH-DEFINITION PLOT STYLING (WITH PROPER BORDERS & GRIDS)
 # =========================================================
 plt.rcParams.update({
     "figure.dpi": 300,
     "savefig.dpi": 300,
     "font.family": "sans-serif",
     "font.sans-serif": ["Helvetica", "Arial", "DejaVu Sans"],
-    "font.size": 10,
-    "axes.labelsize": 11,
-    "axes.titlesize": 12,
+    "font.size": 9.5,
+    "axes.labelsize": 10.5,
+    "axes.titlesize": 11.5,
     "axes.titleweight": "bold",
-    "axes.edgecolor": "#cbd5e1",
-    "axes.linewidth": 1.0,
-    "grid.color": "#f1f5f9",
+    "axes.edgecolor": "#94a3b8",
+    "axes.linewidth": 1.2,
+    "grid.color": "#e2e8f0",
     "grid.linestyle": "--",
     "grid.linewidth": 0.8,
     "figure.constrained_layout.use": True,
@@ -115,7 +115,6 @@ st.markdown(
 
 /* ---------- CARDS ---------- */
 .metric-card,
-.standout-class,
 .standout-confidence,
 .info-card {
     background-color: var(--secondary-background-color) !important;
@@ -123,10 +122,6 @@ st.markdown(
     border-radius: 14px;
     padding: 1.15rem 1.3rem;
     box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
-}
-
-.standout-class {
-    border: 2px solid #10b981 !important;
 }
 
 .standout-confidence {
@@ -437,27 +432,16 @@ if st.session_state.active_tab == "Try the Classifier":
         unsafe_allow_html=True,
     )
 
-    m1, m2 = st.columns(2)
-    with m1:
-        st.markdown(
-            f"""
-            <div class="standout-class">
-                <div class="metric-label">Predicted Class</div>
-                <div class="metric-value">{display_text}</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-    with m2:
-        st.markdown(
-            f"""
-            <div class="standout-confidence">
-                <div class="metric-label">Model Confidence</div>
-                <div class="metric-value">{max_probability:.0%}</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+    # Model Confidence card only (Predicted class box removed as requested)
+    st.markdown(
+        f"""
+        <div class="standout-confidence">
+            <div class="metric-label">Model Confidence Assessment</div>
+            <div class="metric-value">{max_probability:.0%} certainty for <em>{display_text}</em></div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("#### Probability Distribution")
@@ -467,17 +451,20 @@ if st.session_state.active_tab == "Try the Classifier":
         "Probability": probabilities,
     }).sort_values("Probability", ascending=True)
 
-    fig, ax = plt.subplots(figsize=(8, 3.2))
-    ax.barh(prob_df["Class"], prob_df["Probability"], color="#2563eb", height=0.55, edgecolor="none", zorder=3)
+    # Compact graph with gridlines and proper borders
+    fig, ax = plt.subplots(figsize=(7, 2.8))
+    ax.barh(prob_df["Class"], prob_df["Probability"], color="#2563eb", height=0.5, edgecolor="#1e40af", linewidth=0.6, zorder=3)
     ax.set_xlim(0, 1.05)
-    ax.set_xlabel("Model Probability", labelpad=8)
-    ax.grid(axis="x", alpha=0.5, zorder=0)
-    ax.spines["top"].set_visible(False)
-    ax.spines["right"].set_visible(False)
-    ax.spines["bottom"].set_color("#cbd5e1")
-    ax.spines["left"].set_color("#cbd5e1")
+    ax.set_xlabel("Model Probability", labelpad=6)
+    ax.grid(axis="x", alpha=0.6, zorder=0)
+    ax.spines["top"].set_visible(True)
+    ax.spines["right"].set_visible(True)
+    ax.spines["top"].set_color("#94a3b8")
+    ax.spines["right"].set_color("#94a3b8")
+    
     for i, v in enumerate(prob_df["Probability"]):
-        ax.text(min(v + 0.03, 0.95), i, f"{v:.0%}", va="center", fontweight="600", color="#334155", fontsize=9.5)
+        ax.text(min(v + 0.03, 0.95), i, f"{v:.1%}", va="center", fontweight="600", color="#1e293b", fontsize=9)
+        
     fig.tight_layout()
     st.pyplot(fig, use_container_width=True)
     plt.close(fig)
@@ -507,7 +494,7 @@ if st.session_state.active_tab == "Try the Classifier":
 
     # SHAP EXPLANATION
     st.markdown("#### Model Explanation (SHAP)")
-    st.caption("This shows how each spectral feature contributed to the current prediction.")
+    st.caption("Detailed breakdown of feature-level impacts on the prediction.")
 
     try:
         import shap
@@ -530,16 +517,18 @@ if st.session_state.active_tab == "Try the Classifier":
             "Feature Value": [float(v) for v in input_features.iloc[0].values]
         }).sort_values("SHAP Value", key=abs, ascending=False)
 
-        fig_shap, ax_shap = plt.subplots(figsize=(8, 3.5))
+        # Compact SHAP chart with gridlines and frame
+        fig_shap, ax_shap = plt.subplots(figsize=(7, 2.8))
         colors = ["#059669" if x > 0 else "#dc2626" for x in shap_df["SHAP Value"]]
-        ax_shap.barh(shap_df["Feature"], shap_df["SHAP Value"], color=colors, height=0.55, zorder=3)
-        ax_shap.set_xlabel("SHAP Value (Impact on Prediction)", labelpad=8)
-        ax_shap.axvline(0, color="#94a3b8", linewidth=1.2, linestyle="-", zorder=2)
-        ax_shap.grid(axis="x", alpha=0.5, zorder=0)
-        ax_shap.spines["top"].set_visible(False)
-        ax_shap.spines["right"].set_visible(False)
-        ax_shap.spines["bottom"].set_color("#cbd5e1")
-        ax_shap.spines["left"].set_color("#cbd5e1")
+        ax_shap.barh(shap_df["Feature"], shap_df["SHAP Value"], color=colors, height=0.5, edgecolor="#64748b", linewidth=0.6, zorder=3)
+        ax_shap.set_xlabel("SHAP Value (Impact on Prediction)", labelpad=6)
+        ax_shap.axvline(0, color="#64748b", linewidth=1.0, linestyle="-", zorder=2)
+        ax_shap.grid(axis="x", alpha=0.6, zorder=0)
+        ax_shap.spines["top"].set_visible(True)
+        ax_shap.spines["right"].set_visible(True)
+        ax_shap.spines["top"].set_color("#94a3b8")
+        ax_shap.spines["right"].set_color("#94a3b8")
+        
         fig_shap.tight_layout()
         st.pyplot(fig_shap, use_container_width=True)
         plt.close(fig_shap)
@@ -553,16 +542,16 @@ if st.session_state.active_tab == "Try the Classifier":
             hide_index=True
         )
 
-        st.info("Positive SHAP values push the prediction toward the predicted class. Negative values push it away.")
+        st.info("Positive SHAP values drive the score toward this classification; negative values push it away.")
 
     except Exception as e:
         st.warning(f"SHAP explanation could not be generated: {e}")
 
-    # Spectrum
+    # Spectrum Graph
     st.markdown("<hr>", unsafe_allow_html=True)
     st.markdown('<div class="section-title">Reconstructed UV-Vis Spectrum</div>', unsafe_allow_html=True)
     st.markdown(
-        '<div class="section-subtitle">A Gaussian-shaped absorption band reconstructed from the four input features.</div>',
+        '<div class="section-subtitle">Gaussian curve representation generated using the input values.</div>',
         unsafe_allow_html=True,
     )
 
@@ -570,34 +559,36 @@ if st.session_state.active_tab == "Try the Classifier":
     sigma = fwhm / 2.355
     simulated_spectrum = peak_height * np.exp(-((wavelengths - lambda_max) ** 2) / (2 * sigma**2))
 
-    fig2, ax2 = plt.subplots(figsize=(12, 4.2))
-    ax2.plot(wavelengths, simulated_spectrum, linewidth=2.8, color="#1d4ed8", zorder=3)
+    # Compact Spectrum graph with gridlines and proper framing
+    fig2, ax2 = plt.subplots(figsize=(9, 3.2))
+    ax2.plot(wavelengths, simulated_spectrum, linewidth=2.4, color="#1d4ed8", zorder=3)
     ax2.fill_between(wavelengths, simulated_spectrum, color="#eff6ff", alpha=0.6, zorder=2)
-    ax2.axvline(lambda_max, linestyle="--", linewidth=1.2, color="#d97706", alpha=0.8, zorder=3)
-    ax2.scatter([lambda_max], [peak_height], s=65, zorder=4, color="#dc2626", edgecolor="white", linewidth=1.5)
+    ax2.axvline(lambda_max, linestyle="--", linewidth=1.0, color="#d97706", alpha=0.9, zorder=3)
+    ax2.scatter([lambda_max], [peak_height], s=55, zorder=4, color="#dc2626", edgecolor="white", linewidth=1.2)
     ax2.annotate(
         f"λmax = {lambda_max:.1f} nm",
         xy=(lambda_max, peak_height),
-        xytext=(lambda_max + 12, peak_height * 0.82),
-        arrowprops=dict(arrowstyle="->", color="#64748b", lw=1.2, alpha=0.7),
-        fontsize=9.5,
+        xytext=(lambda_max + 12, peak_height * 0.8),
+        arrowprops=dict(arrowstyle="->", color="#64748b", lw=1.0, alpha=0.8),
+        fontsize=9,
         fontweight="600",
         color="#334155"
     )
-    ax2.set_xlabel("Wavelength (nm)", labelpad=8)
-    ax2.set_ylabel("Absorbance (A.U.)", labelpad=8)
+    ax2.set_xlabel("Wavelength (nm)", labelpad=6)
+    ax2.set_ylabel("Absorbance (A.U.)", labelpad=6)
     ax2.set_xlim(200, 400)
     ax2.set_ylim(bottom=0)
-    ax2.grid(alpha=0.4, zorder=0)
-    ax2.spines["top"].set_visible(False)
-    ax2.spines["right"].set_visible(False)
-    ax2.spines["bottom"].set_color("#cbd5e1")
-    ax2.spines["left"].set_color("#cbd5e1")
+    ax2.grid(True, alpha=0.6, zorder=0)
+    ax2.spines["top"].set_visible(True)
+    ax2.spines["right"].set_visible(True)
+    ax2.spines["top"].set_color("#94a3b8")
+    ax2.spines["right"].set_color("#94a3b8")
+    
     fig2.tight_layout()
     st.pyplot(fig2, use_container_width=True)
     plt.close(fig2)
 
-    st.info("⚠️ The spectrum shown above is reconstructed from the selected features for visualization. It is not a raw experimental spectrum.")
+    st.info("⚠️ This spectrum plot is a mathematical visualization constructed from parameters, not a raw laboratory output.")
 
 
 # =========================================================
@@ -608,7 +599,7 @@ elif st.session_state.active_tab == "Model Performance":
 
     st.markdown('<div class="section-title">Model Performance</div>', unsafe_allow_html=True)
     st.markdown(
-        '<div class="section-subtitle">Evaluation of the Random Forest classifier on the held-out test set.</div>',
+        '<div class="section-subtitle">Evaluation metrics of the Random Forest classifier on the held-out evaluation dataset.</div>',
         unsafe_allow_html=True,
     )
 
@@ -623,7 +614,7 @@ elif st.session_state.active_tab == "Model Performance":
         st.markdown("""<div class="metric-card"><div class="metric-label">Classes</div><div class="metric-value">4</div></div>""", unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
-    st.info("The dataset is **synthetic** and was designed with realistic class overlap and instrument-like variability. Therefore, the reported performance should be interpreted as **proof-of-concept** rather than real-world clinical or regulatory performance.")
+    st.info("The performance data reflects a synthetic dataset built with realistic analytical variance. Treat results as a proof-of-concept.")
 
     perf_col1, perf_col2 = st.columns(2, gap="large")
     with perf_col1:
@@ -639,22 +630,6 @@ elif st.session_state.active_tab == "Model Performance":
         except Exception:
             st.warning("Feature importance image not found.")
 
-    st.markdown("<hr>", unsafe_allow_html=True)
-    st.markdown(
-        """
-        <div class="info-card">
-            <h4>Interpretation</h4>
-            <p>The classifier achieved <strong>95% test accuracy</strong> on the synthetic held-out dataset.
-            The most meaningful potential confusion occurs between <strong>genuine</strong> and
-            <strong>low-dose</strong> samples, which is chemically plausible because their spectral
-            characteristics can partially overlap.</p>
-            <p style="margin-bottom:0;">Feature importance analysis shows that <strong>λmax</strong> and <strong>peak height</strong>
-            are the most discriminative descriptors for separating the four quality classes.</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
 
 # =========================================================
 # TAB 3 — ABOUT
@@ -664,7 +639,7 @@ elif st.session_state.active_tab == "About the Project":
 
     st.markdown('<div class="section-title">About the Research Project</div>', unsafe_allow_html=True)
     st.markdown(
-        '<div class="section-subtitle">From simulated UV-Vis spectra to machine-learning-based pharmaceutical screening.</div>',
+        '<div class="section-subtitle">From computational molecular modeling to rapid pharmaceutical screening tools.</div>',
         unsafe_allow_html=True,
     )
 
@@ -672,49 +647,17 @@ elif st.session_state.active_tab == "About the Project":
         """
         <div class="info-card">
             <h4>🎯 Motivation</h4>
-            <p>Substandard and counterfeit medicines represent an important quality-control challenge.
-            Full confirmatory analytical methods such as HPLC and LC-MS provide high confidence
-            but may not be practical for rapid screening of every sample.</p>
-            <p style="margin-bottom:0;">This project explores whether a low-cost UV-Vis spectral fingerprint, combined with
-            machine learning, could provide a preliminary screening step before confirmatory
-            laboratory analysis.</p>
+            <p>Substandard medications remain a persistent health issue. Full instrumental setups like HPLC
+            are resource-heavy; combining simple UV-Vis optical fingerprints with machine learning offers an accessible
+            preliminary filter.</p>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
     st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("### 🔬 Analytical Pipeline")
-
-    col_a, col_b = st.columns(2, gap="large")
-    with col_a:
-        st.markdown(
-            """
-            <div class="pipeline-step"><strong>01 — Synthetic Spectra Generation</strong><br>
-            Simulated UV-Vis spectra for four classes:<br>
-            • Genuine paracetamol<br>• Substandard / low-dose<br>
-            • Wrong or substitute API<br>• Degraded / impure material</div>
-            <div class="pipeline-step"><strong>02 — Feature Extraction</strong><br>
-            Four spectral descriptors extracted:<br>
-            • λmax &nbsp;• Peak height &nbsp;• FWHM &nbsp;• Area under the curve</div>
-            """,
-            unsafe_allow_html=True,
-        )
-    with col_b:
-        st.markdown(
-            """
-            <div class="pipeline-step"><strong>03 — Machine Learning</strong><br>
-            A Random Forest classifier was trained using the extracted spectral features.</div>
-            <div class="pipeline-step"><strong>04 — Computational Validation</strong><br>
-            The reference absorption region was independently compared with a TD-DFT calculation using Gaussian 09.</div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-    st.markdown("<hr>", unsafe_allow_html=True)
-    st.markdown("### ⚛️ DFT Validation")
-    st.success("**TD-DFT prediction:** λmax = 248.72 nm &nbsp;| &nbsp;Oscillator strength = 0.5021 &nbsp;| &nbsp;Experimental/reference ≈ 243 nm &nbsp;| &nbsp;Difference = 5.72 nm")
-    st.write("The dominant electronic transition among the ten calculated excited states was predicted at 248.72 nm with an oscillator strength of 0.5021.")
+    st.markdown("### ⚛️ Computational Validation (TD-DFT)")
+    st.success("**Gaussian 09 Results:** λmax = 248.72 nm &nbsp;| &nbsp;Oscillator Strength = 0.5021 &nbsp;| &nbsp;Reference Target ≈ 243 nm")
 
     with st.expander("View all 10 calculated excited states"):
         excited_states = pd.DataFrame({
@@ -726,19 +669,6 @@ elif st.session_state.active_tab == "About the Project":
         st.dataframe(excited_states, use_container_width=True, hide_index=True)
 
     st.markdown("<hr>", unsafe_allow_html=True)
-    st.markdown("### ⚠️ Limitations")
-    st.warning(
-        """
-        **Important scientific limitations**
-        - The spectra used are **simulated**, not measured from real samples.
-        - This is a **proof-of-concept** and has not been validated on real pharmaceutical batches.
-        - Not a regulatory-grade quality-control method.
-        - Confirmatory testing (e.g. HPLC) is still required.
-        - Currently limited to **paracetamol**.
-        """
-    )
-
-    st.markdown("<br>", unsafe_allow_html=True)
     st.markdown(
         """
         <div class="info-card">
